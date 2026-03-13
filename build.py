@@ -140,7 +140,7 @@ def copy_project(target: Path) -> None:
 
 def make_zip(source_dir: Path, zip_name: str) -> Path:
     zip_path = DIST / zip_name
-    log(f"Comprimiendo → {zip_name}")
+    log(f"Comprimiendo: {zip_name}")
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for f in source_dir.rglob("*"):
             if f.is_file():
