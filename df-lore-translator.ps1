@@ -4,8 +4,14 @@ $Host.UI.RawUI.WindowTitle = 'DF-Lore-Translator'
 
 $script:Root       = $PSScriptRoot
 $script:EnvFile    = Join-Path $script:Root '.env'
-$script:VenvPy     = Join-Path $script:Root 'venv\Scripts\python.exe'
 $script:ConfigFile = Join-Path $script:Root 'backend\config.yaml'
+
+# Modo distribución (python/ embebido) o modo dev (venv/)
+$_distPy = Join-Path $script:Root 'python\python.exe'
+$_devPy  = Join-Path $script:Root 'venv\Scripts\python.exe'
+if     (Test-Path $_distPy) { $script:VenvPy = $_distPy; $script:DistMode = $true  }
+elseif (Test-Path $_devPy)  { $script:VenvPy = $_devPy;  $script:DistMode = $false }
+else                         { $script:VenvPy = $null;    $script:DistMode = $false }
 
 # --- Utilidades ---
 
@@ -181,14 +187,22 @@ function Start-All {
     Show-Header
     Write-Host ''
     Write-Host '    Arrancando servidor de traduccion...' -ForegroundColor Yellow
-    $serverCmd = 'title DFLT-Server & cd /d "{0}" & call venv\Scripts\activate.bat & cd backend & python api/app.py' -f $script:Root
+
+    if ($script:DistMode) {
+        $py = $script:VenvPy
+        $serverCmd  = 'title DFLT-Server  & cd /d "{0}\backend" & "{1}" api/app.py' -f $script:Root, $py
+        $watcherCmd = 'title DFLT-Watcher & cd /d "{0}\backend" & "{1}" watcher/gamelog_watcher.py' -f $script:Root, $py
+    } else {
+        $serverCmd  = 'title DFLT-Server  & cd /d "{0}" & call venv\Scripts\activate.bat & cd backend & python api/app.py' -f $script:Root
+        $watcherCmd = 'title DFLT-Watcher & cd /d "{0}" & call venv\Scripts\activate.bat & cd backend & python watcher/gamelog_watcher.py' -f $script:Root
+    }
+
     Start-Process cmd -ArgumentList '/k', $serverCmd
 
     Write-Host '    Esperando 3 segundos...' -ForegroundColor DarkGray
     Start-Sleep -Seconds 3
 
     Write-Host '    Arrancando watcher del gamelog...' -ForegroundColor Yellow
-    $watcherCmd = 'title DFLT-Watcher & cd /d "{0}" & call venv\Scripts\activate.bat & cd backend & python watcher/gamelog_watcher.py' -f $script:Root
     Start-Process cmd -ArgumentList '/k', $watcherCmd
 
     Write-Host ''
@@ -366,11 +380,14 @@ function Config-Beep {
 
 # --- Punto de entrada ---
 
-if (-not (Test-Path $script:VenvPy)) {
+if (-not $script:VenvPy -or -not (Test-Path $script:VenvPy)) {
     Write-Host ''
-    Write-Host '   No se encontro el entorno virtual (venv).' -ForegroundColor Red
+    Write-Host '   No se encontro Python.' -ForegroundColor Red
     Write-Host ''
-    Write-Host '   Ejecuta desde la raiz del proyecto:' -ForegroundColor Gray
+    Write-Host '   Opcion A — distribucion (sin instalar nada):' -ForegroundColor Gray
+    Write-Host '     Descarga el ZIP desde los Releases de GitHub y ejecuta desde ahi.' -ForegroundColor White
+    Write-Host ''
+    Write-Host '   Opcion B — entorno de desarrollo:' -ForegroundColor Gray
     Write-Host '     python -m venv venv' -ForegroundColor White
     Write-Host '     venv\Scripts\pip install -r backend\requirements.txt' -ForegroundColor White
     Wait-Key 'Pulsa cualquier tecla para salir...'

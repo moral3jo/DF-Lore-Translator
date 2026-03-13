@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python (para ejecutar build.py)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Extraer versión del tag
+        id: ver
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build distribución
+        shell: cmd
+        run: python build.py --version ${{ steps.ver.outputs.VERSION }}
+
+      - name: Publicar Release en GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "DF-Lore-Translator v${{ steps.ver.outputs.VERSION }}"
+          body: |
+            ## Instalación
+
+            1. Descarga `DF-Lore-Translator-v${{ steps.ver.outputs.VERSION }}.zip`
+            2. Extrae la carpeta en cualquier lugar
+            3. Copia `.env.example` → `.env` y rellena tu clave API
+            4. Doble clic en `df-lore-translator.bat`
+
+            No se necesita instalar Python ni ninguna dependencia.
+
+            ## Requisitos
+            - Windows 10/11 (64-bit)
+            - Una clave API de [DeepL](https://www.deepl.com/pro-api), [Google Translate](https://cloud.google.com/translate) o [Azure Translator](https://azure.microsoft.com/es-es/products/ai-services/translator)
+          files: dist/DF-Lore-Translator-v${{ steps.ver.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false

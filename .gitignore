@@ -13,6 +13,9 @@ build/
 venv/
 .venv/
 
+# Distribución generada por build.py
+dist/
+
 # Datos generados en runtime
 backend/cache/
 backend/logs/
