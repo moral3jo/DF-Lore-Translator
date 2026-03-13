@@ -1,0 +1,54 @@
+# ============================================================
+# Configuración principal de DF-Lore-Translator
+# ============================================================
+# Las claves API y rutas se leen desde variables de entorno.
+# Copia .env.example → .env y rellena tus valores ahí.
+# Los valores de este archivo se usan como fallback.
+# ============================================================
+
+# Motor de traducción activo: deepl | google | azure
+engine: deepl
+
+# Ruta de instalación de Dwarf Fortress
+df_install_path: "D:/SteamLibrary/steamapps/common/Dwarf Fortress"
+
+# Configuración del Watcher
+watcher:
+  poll_interval_seconds: 0.5
+  translation_service_url: "http://localhost:5100"
+
+# Configuración de visualización
+display:
+  # Modo de salida: console | overlay
+  mode: overlay
+  overlay:
+    x: 40                        # posición horizontal (píxeles desde la izquierda)
+    y: 60                        # posición vertical (píxeles desde arriba)
+    width: 700                   # ancho de la ventana en píxeles
+    height: 300                  # alto de la ventana en píxeles
+    opacity: 1.0                 # 0.0 = invisible · 1.0 = sólido (ventana transparente, solo afecta al texto)
+    font_size: 10                # tamaño de fuente en puntos
+    font_family: "Consolas"      # familia de fuente
+    default_text_color: "#FFFFFF"  # color para texto sin markup DFHack
+    outline_color: "#000000"     # color del contorno del texto
+    outline_width: 2             # grosor del contorno en píxeles (1-4 recomendado)
+    always_on_top: true          # mantener sobre todas las ventanas
+    max_messages: 10             # mensajes visibles simultáneamente
+    fade_seconds: 0              # segundos hasta desvanecerse (0 = permanente)
+
+# Caché SQLite (ruta relativa a backend/)
+cache:
+  path: "cache/translations.db"
+
+# Configuración de DeepL
+deepl:
+  api_key: ""
+
+# Configuración de Google Translate (Cloud Translation API v2)
+google:
+  api_key: ""
+
+# Configuración de Azure Translator
+azure:
+  api_key: ""
+  region: "westeurope"

@@ -1,0 +1,20 @@
+# Glosario DeepL para Dwarf Fortress
+# Formato: término en inglés = traducción en español
+# Las líneas que empiezan con # son comentarios y se ignoran.
+# Cada vez que modifiques este archivo, reinicia el servidor para que
+# el cambio se sincronice automáticamente con DeepL.
+
+misses = falla
+strikes = golpea
+dwarf = enano
+dwarves = enanos
+gypsum = yeso
+badger boar = tejón jabalí
+stray = callejero
+You have struck = has encontrado
+cabinet = armario
+bin = caja
+rock pot = vasija de piedra
+coffer = cofre
+cabinet = armario
+table = mesa

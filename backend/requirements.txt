@@ -1,0 +1,6 @@
+flask>=3.0
+requests>=2.31
+pyyaml>=6.0
+deepl>=1.17
+python-dotenv>=1.0
+PyQt6>=6.6

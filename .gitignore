@@ -1,0 +1,37 @@
+# Entorno y secretos
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+venv/
+.venv/
+
+# Datos generados en runtime
+backend/cache/
+backend/logs/
+backend/glossary_state.json
+
+# Archivos descartados
+_archive/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code (configuración local de la máquina)
+.claude/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

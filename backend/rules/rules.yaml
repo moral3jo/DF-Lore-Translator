@@ -1,0 +1,14 @@
+# Reglas declarativas del Rule Engine.
+# Cada regla tiene:
+#   pattern  — regex Python que se aplica con re.match() al texto original
+#   handler  — nombre de la función en handlers.py que procesa el match
+#
+# Para añadir una regla nueva:
+#   1. Añade la entrada aquí con su pattern y handler
+#   2. Si el handler no existe todavía, créalo en handlers.py
+#   3. Reinicia el servidor
+#
+# El orden importa: se evalúan de arriba a abajo y se usa la primera coincidencia.
+
+- pattern: "^(.+?) \\((\\d+)\\) has been completed\\.$"
+  handler: job_completed
