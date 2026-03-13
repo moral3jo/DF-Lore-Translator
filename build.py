@@ -109,7 +109,7 @@ def setup_python(python_dir: Path) -> None:
     download(GET_PIP_URL, get_pip)
     subprocess.run(
         [str(python_dir / "python.exe"), str(get_pip), "--no-warn-script-location"],
-        check=True, capture_output=True,
+        check=True,
     )
     get_pip.unlink()
 
@@ -161,8 +161,8 @@ def main() -> None:
     dist_name = f"DF-Lore-Translator-v{version}"
     target    = DIST / dist_name
 
-    print(f"\n  DF-Lore-Translator — build v{version}")
-    print(f"  {'─' * 40}\n")
+    print(f"\n  DF-Lore-Translator - build v{version}")
+    print(f"  {'=' * 40}\n")
 
     if target.exists():
         shutil.rmtree(target)
@@ -182,7 +182,7 @@ def main() -> None:
     # 4. ZIP final
     zip_path = make_zip(target, f"{dist_name}.zip")
     mb = zip_path.stat().st_size / 1_048_576
-    print(f"\n  ✓  {zip_path.name}  ({mb:.1f} MB)")
+    print(f"\n  OK  {zip_path.name}  ({mb:.1f} MB)")
     print(f"     {zip_path}\n")
 
 
