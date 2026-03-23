@@ -118,16 +118,16 @@ def _translate(text: str, service_url: str) -> str | None:
 # Bucle principal
 # ---------------------------------------------------------------------------
 
-def watch(gamelog_path: str, poll_interval: float, service_url: str, visualizer) -> None:
-    print(f"[Watcher] Vigilando: {gamelog_path}", flush=True)
+def watch(file_path: str, poll_interval: float, service_url: str, visualizer) -> None:
+    print(f"[Watcher] Vigilando: {file_path}", flush=True)
     print(f"[Watcher] Servicio de traducción: {service_url}", flush=True)
-    print("[Watcher] Esperando líneas nuevas... (Ctrl+C para detener)\n", flush=True)
+    print(f"[Watcher] Esperando líneas nuevas en {os.path.basename(file_path)}... (Ctrl+C para detener)", flush=True)
 
-    while not os.path.exists(gamelog_path):
-        print(f"[Watcher] gamelog.txt no encontrado en {gamelog_path!r}. Esperando...", flush=True)
+    while not os.path.exists(file_path):
+        print(f"[Watcher] Archivo no encontrado: {file_path!r}. Esperando...", flush=True)
         time.sleep(poll_interval * 4)
 
-    with open(gamelog_path, "r", encoding="cp437", errors="replace") as f:
+    with open(file_path, "r", encoding="cp437", errors="replace") as f:
         f.seek(0, 2)  # EOF — ignora el historial previo
 
         while True:
@@ -140,13 +140,17 @@ def watch(gamelog_path: str, poll_interval: float, service_url: str, visualizer)
                 orig_count = _count_markup(line)
                 translated = _translate(line, service_url)
 
-                if translated:
+                if translated == "":
+                    # Traducción vacía intencional (por regla), no mostramos nada
+                    continue
+                elif translated:
                     trans_count = _count_markup(translated)
                     if orig_count != trans_count:
-                        print(
-                            f"  [markup] {orig_count}→{trans_count} tokens  (ver logs/markup_mismatch.jsonl)",
-                            flush=True,
-                        )
+                        if os.environ.get("SHOW_MARKUP_WARNINGS", "false").lower() == "true":
+                            print(
+                                f"  [markup] {orig_count}→{trans_count} tokens  (ver logs/markup_mismatch.jsonl)",
+                                flush=True,
+                            )
                         _log_mismatch(line, translated, orig_count, trans_count)
 
                     _log_translation(line, translated)
@@ -175,9 +179,14 @@ if __name__ == "__main__":
             gamelog_path = os.path.join(df_path, "gamelog.txt")
         else:
             gamelog_path = "C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/gamelog.txt"
+            
+    df_dir = os.path.dirname(gamelog_path)
+    enanos_path = os.path.join(df_dir, "enanos_exportados.txt")
 
     poll_interval = float(watcher_cfg.get("poll_interval_seconds", 0.5))
     service_url = watcher_cfg.get("translation_service_url", "http://localhost:5100").rstrip("/")
+    
+    files_to_watch = [gamelog_path, enanos_path]
 
     if display_mode == "overlay":
         import threading
@@ -188,12 +197,12 @@ if __name__ == "__main__":
         overlay_cfg = display_cfg.get("overlay", {})
         visualizer = OverlayVisualizer(overlay_cfg)
 
-        thread = threading.Thread(
-            target=watch,
-            args=(gamelog_path, poll_interval, service_url, visualizer),
-            daemon=True,
-        )
-        thread.start()
+        for fpath in files_to_watch:
+            threading.Thread(
+                target=watch,
+                args=(fpath, poll_interval, service_url, visualizer),
+                daemon=True,
+            ).start()
 
         try:
             sys.exit(app.exec())
@@ -201,12 +210,21 @@ if __name__ == "__main__":
             print("\n[Watcher] Detenido por el usuario.", flush=True)
 
     else:  # console (por defecto)
+        import threading
         from visualizer.console import ConsoleVisualizer
 
         beep = os.environ.get("BEEP_ENABLED", "true").lower() != "false"
         visualizer = ConsoleVisualizer(beep_enabled=beep)
 
+        for fpath in files_to_watch:
+            threading.Thread(
+                target=watch,
+                args=(fpath, poll_interval, service_url, visualizer),
+                daemon=True,
+            ).start()
+
         try:
-            watch(gamelog_path, poll_interval, service_url, visualizer)
+            while True:
+                time.sleep(1)
         except KeyboardInterrupt:
             print("\n[Watcher] Detenido por el usuario.", flush=True)

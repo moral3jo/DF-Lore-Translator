@@ -20,12 +20,12 @@ watcher:
 # Configuración de visualización
 display:
   # Modo de salida: console | overlay
-  mode: overlay
+  mode: console
   overlay:
     x: 40                        # posición horizontal (píxeles desde la izquierda)
     y: 60                        # posición vertical (píxeles desde arriba)
     width: 700                   # ancho de la ventana en píxeles
-    height: 300                  # alto de la ventana en píxeles
+    height: 600                  # alto de la ventana en píxeles
     opacity: 1.0                 # 0.0 = invisible · 1.0 = sólido (ventana transparente, solo afecta al texto)
     font_size: 10                # tamaño de fuente en puntos
     font_family: "Consolas"      # familia de fuente

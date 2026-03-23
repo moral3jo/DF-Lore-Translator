@@ -25,3 +25,10 @@ def job_completed(text: str, match: re.Match) -> str:
     item = match.group(1)
     count = match.group(2)
     return f"{item} ({count}) Completado"
+
+def ignore_line(text: str, match: re.Match) -> str:
+    """
+    Ignora la línea intencionalmente, devolviendo una cadena vacía.
+    Al devolver una cadena vacía, el watcher la ignorará y no la imprimirá en la consola.
+    """
+    return ""

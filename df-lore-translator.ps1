@@ -102,6 +102,11 @@ function Show-Header {
     if ($beepRaw -eq 'false') { $beep = 'desactivado' }
     $displayMode = Get-DisplayMode
 
+    $markupRaw = $env:SHOW_MARKUP_WARNINGS
+    if (-not $markupRaw) { $markupRaw = 'false' }
+    $markupDisp = 'ocultos'
+    if ($markupRaw -eq 'true') { $markupDisp = 'visibles' }
+
     Clear-Host
     Write-Host ''
     Write-Host '   ====================================================' -ForegroundColor DarkCyan
@@ -114,6 +119,8 @@ function Show-Header {
     Write-Host $beep              -NoNewline -ForegroundColor Yellow
     Write-Host '     Visual: '    -NoNewline -ForegroundColor Gray
     Write-Host $displayMode       -ForegroundColor Yellow
+    Write-Host '    Avisos: '     -NoNewline -ForegroundColor Gray
+    Write-Host $markupDisp        -ForegroundColor Yellow
 
     Write-Host '    Servidor: ' -NoNewline -ForegroundColor Gray
     if ($s.Server) {
@@ -269,6 +276,55 @@ function Deploy-Menu {
     }
 }
 
+function Clean-Cache {
+    Show-Header
+    Write-Host ''
+
+    $dbPath = Join-Path $script:Root 'backend\cache\translations.db'
+
+    if (-not (Test-Path $dbPath)) {
+        Write-Host '    No se encontro la base de datos de traducciones.' -ForegroundColor DarkGray
+        Write-Host '    (Se crea automaticamente al traducir por primera vez.)' -ForegroundColor DarkGray
+        Wait-Key
+        return
+    }
+
+    $size = [math]::Round((Get-Item $dbPath).Length / 1KB, 1)
+    Write-Host '    Base de datos: ' -NoNewline -ForegroundColor Gray
+    Write-Host "$dbPath  ($size KB)" -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host '    Se eliminaran las traducciones generadas automaticamente.' -ForegroundColor Gray
+    Write-Host '    Las entradas editadas manualmente se conservan.' -ForegroundColor DarkGray
+    Write-Host ''
+
+    $items = @('Limpiar traducciones automaticas', 'Cancelar')
+    $c = Show-Menu -Items $items
+    if ($c -ne 0) { return }
+
+    Write-Host ''
+    Write-Host '    Limpiando...' -ForegroundColor DarkGray
+
+    $tmpPy = [System.IO.Path]::GetTempFileName() + '.py'
+    @"
+import sqlite3
+conn = sqlite3.connect(r'$dbPath')
+cur  = conn.cursor()
+cur.execute('SELECT COUNT(*) FROM translations WHERE is_edited = 0')
+n = cur.fetchone()[0]
+cur.execute('DELETE FROM translations WHERE is_edited = 0')
+conn.commit()
+conn.close()
+print(n)
+"@ | Out-File -FilePath $tmpPy -Encoding utf8
+
+    $result = & $script:VenvPy $tmpPy 2>&1
+    Remove-Item $tmpPy -ErrorAction SilentlyContinue
+
+    $deleted = ($result | Select-Object -Last 1).ToString().Trim()
+    Write-Host "    OK - $deleted traducciones eliminadas." -ForegroundColor Green
+    Wait-Key
+}
+
 function Config-Menu {
     while ($true) {
         Show-Header
@@ -277,6 +333,8 @@ function Config-Menu {
             'Cambiar motor de traduccion'
             'Cambiar visualizador  (consola / overlay)'
             'Activar/desactivar pitido  (solo modo consola)'
+            'Activar/desactivar avisos de markup'
+            'Limpiar cache de traducciones'
             'Volver'
         )
         $c = Show-Menu -Items $items
@@ -285,6 +343,8 @@ function Config-Menu {
             0 { Config-Engine }
             1 { Config-Visualizer }
             2 { Config-Beep }
+            3 { Config-Markup }
+            4 { Clean-Cache }
             default { return }
         }
     }
@@ -374,6 +434,21 @@ function Config-Beep {
     Show-Header
     Write-Host ''
     Write-Host "    OK - Pitido: $disp" -ForegroundColor Green
+    Write-Host '      Reinicia el watcher para que surta efecto.' -ForegroundColor DarkGray
+    Wait-Key
+}
+
+function Config-Markup {
+    $cur = $env:SHOW_MARKUP_WARNINGS
+    if (-not $cur) { $cur = 'false' }
+    if ($cur -eq 'false') { $new = 'true' } else { $new = 'false' }
+    if ($new -eq 'true') { $disp = 'visibles' } else { $disp = 'ocultos' }
+
+    Set-EnvValue 'SHOW_MARKUP_WARNINGS' $new
+
+    Show-Header
+    Write-Host ''
+    Write-Host "    OK - Avisos de tokens: $disp" -ForegroundColor Green
     Write-Host '      Reinicia el watcher para que surta efecto.' -ForegroundColor DarkGray
     Wait-Key
 }

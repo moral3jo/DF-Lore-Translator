@@ -128,14 +128,16 @@ class _OutlinedLabel(QWidget):
         self.setFont(font)
 
         self._outline_width = outline_width
-        self._pad = outline_width + 2
+        self._pad = outline_width
 
         self._doc = QTextDocument()
+        self._doc.setDocumentMargin(0)
         self._doc.setDefaultFont(font)
         self._doc.setHtml(f'<span style="color:{default_color};">{html}</span>')
 
         outline_html = _RE_COLOR.sub(f"color:{outline_color}", html)
         self._outline_doc = QTextDocument()
+        self._outline_doc.setDocumentMargin(0)
         self._outline_doc.setDefaultFont(font)
         self._outline_doc.setHtml(
             f'<span style="color:{outline_color};">{outline_html}</span>'
@@ -353,8 +355,8 @@ class _OverlayWindow(QWidget):
         self._msg_container.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self._msg_container.setStyleSheet("background: transparent;")
         self._msg_layout = QVBoxLayout(self._msg_container)
-        self._msg_layout.setContentsMargins(6, 6, 6, 6)
-        self._msg_layout.setSpacing(4)
+        self._msg_layout.setContentsMargins(6, 0, 6, 0)
+        self._msg_layout.setSpacing(0)
         self._msg_layout.addStretch()
         scroll.setWidget(self._msg_container)
 

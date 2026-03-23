@@ -50,7 +50,8 @@ INCLUDE_FILES = [
 # Carpetas que se copian respetando su estructura
 INCLUDE_DIRS = [
     "backend",
-    "mod/scripts",
+    "mod/dfhack-config/scripts",
+    "mod/hack/scripts",
 ]
 
 # Nombres de carpetas y ficheros a excluir dentro de las carpetas copiadas

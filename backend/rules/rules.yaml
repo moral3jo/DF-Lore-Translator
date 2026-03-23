@@ -12,3 +12,12 @@
 
 - pattern: "^(.+?) \\((\\d+)\\) has been completed\\.$"
   handler: job_completed
+
+- pattern: "(?i)^(Loading fortress|Cargando fortaleza).*"
+  handler: ignore_line
+
+- pattern: "^===+$"
+  handler: ignore_line
+
+- pattern: "^---+$"
+  handler: ignore_line

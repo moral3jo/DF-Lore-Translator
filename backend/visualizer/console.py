@@ -108,6 +108,6 @@ class ConsoleVisualizer(BaseVisualizer):
     def display(self, text: str) -> None:
         cols = shutil.get_terminal_size().columns
         rendered = _render_markup(text)
-        print(_wrap(rendered, cols) + "\n", flush=True)
+        print(_wrap(rendered, cols), flush=True)
         if self._beep:
             print("\a", end="", flush=True)

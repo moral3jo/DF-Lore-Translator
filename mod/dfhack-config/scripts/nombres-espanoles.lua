@@ -15,21 +15,21 @@ local HOMBRES = {
     "Pablo Picasso", "Salvador Dali", "Miguel Cervantes", "Julio Iglesias", "Antonio Banderas", "Rafael Nadal", "Butragueno",
     "Fernando Alonso", "Pedro Almodovar", "Javier Bardem", "Juan Manuel Serrat", "Arturo Valls", "Bunbury",
     "David Bisbal", "Melendi", "Raphael", "Amancio Ortega", "Pedro Sanchez", "Mariano Rajoy",
-    "Santiago Abascal", "Felipe Borb√≥n", "Juan Carlos Borb√≥n", "Andr√©s Iniesta", "Juan Buenafuente",
+    "Santiago Abascal", "Felipe Borb¢n", "Juan Carlos Borb¢n", "AndrÇs Iniesta", "Juan Buenafuente",
     "El Quijote", "Sancho Panza", "Iker Jimenez", "Pau Gasol", "Alejandro Sanz", "Joaquin Sabina",
-    "Manolo Escobar", "Paco Le√≥n", "Santiago Segura", "Gaudi", "David Broncano", "Ibai Llanos",
-    "Manolo", "Paco", "Pepe", "Curro", "Quevedo", "G√≥ngora", "Jes√∫s V√°zquez", "Carlos Alcaraz",
-    "Camar√≥n", "Bert√≠n Osborne", "Kiko Rivera", "Karlos Argui√±ano", "Mat√≠as Prats", "Chiquito de la Calzada"
+    "Manolo Escobar", "Paco Le¢n", "Santiago Segura", "Gaudi", "David Broncano", "Ibai Llanos",
+    "Manolo", "Paco", "Pepe", "Curro", "Quevedo", "G¢ngora", "Jes£s V†zquez", "Carlos Alcaraz",
+    "Camar¢n", "Bert°n Osborne", "Kiko Rivera", "Karlos Argui§ano", "Mat°as Prats", "Chiquito de la Calzada"
 }
 
 local MUJERES = {
-    "Rosal√≠a Vila", "Pen√©lope Cruz", "Isabel Pantoja", "Conchita", "Lola Flores", "Roc√≠o Jurado",
-    "Bel√©n Esteban", "Ana Obreg√≥n", "Letizia Ortiz", "D√≠az Ayuso", "Alexia Putellas", "Carolina Mar√≠n",
-    "Mireia Belmonte", "Blanca Su√°rez", "Elsa Pataky", "Cristina Pedroche", "Paz Padilla",
-    "Ana Rosa Quintana", "Mercedes Mil√°", "Susanna Griso", "Concha Velasco", "Carmen Sevilla",
-    "Tamara Falc√≥", "Aitana Oca√±a", "M√≥nica Naranjo", "Marta S√°nchez", "Clara Campoamor",
-    "Terelu Campos", "Pepa Flores", "Antonia Abad", "Olvido Gara", "Yolanda D√≠az",
-    "Irene Montero", "Emilia Pardo", "Rosal√≠a de Castro", "Carmen de Mairena",
+    "Rosal°a Vila", "PenÇlope Cruz", "Isabel Pantoja", "Conchita", "Lola Flores", "Roc°o Jurado",
+    "BelÇn Esteban", "Ana Obreg¢n", "Letizia Ortiz", "D°az Ayuso", "Alexia Putellas", "Carolina Mar°n",
+    "Mireia Belmonte", "Blanca Su†rez", "Elsa Pataky", "Cristina Pedroche", "Paz Padilla",
+    "Ana Rosa Quintana", "Mercedes Mil†", "Susanna Griso", "Concha Velasco", "Carmen Sevilla",
+    "Tamara Falc¢", "Aitana Oca§a", "M¢nica Naranjo", "Marta S†nchez", "Clara Campoamor",
+    "Terelu Campos", "Pepa Flores", "Antonia Abad", "Olvido Gara", "Yolanda D°az",
+    "Irene Montero", "Emilia Pardo", "Rosal°a de Castro", "Carmen de Mairena",
 }
 
 local PUEBLOS = {
@@ -44,8 +44,8 @@ local PUEBLOS = {
     "Comillas", "Laredo", "Potes", "Cangas de Onis", "Luarca",
     "Combarro", "Allariz", "Xativa", "Bocairent", "Peniscola",
     "Santillana del Mar", "Zugarramurdi", "Madrigal de las Altas Torres",
-    "Cangas de On√≠s", "Robledillo de Gata", "Puebla de Sanabria", "Alcal√° del J√∫car",
-    "Cudillero", "La Alberca", "Pedraza", "Albarrac√≠n",
+    "Cangas de On°s", "Robledillo de Gata", "Puebla de Sanabria", "Alcal† del J£car",
+    "Cudillero", "La Alberca", "Pedraza", "Albarrac°n",
 }
 
 local TIPOS_SITIOS = {
