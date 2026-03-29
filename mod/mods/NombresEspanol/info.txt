@@ -1,0 +1,8 @@
+[ID:nombres_espanol]
+[NUMERIC_VERSION:2]
+[DISPLAYED_VERSION:2.0]
+[EARLIEST_COMPATIBLE_NUMERIC_VERSION:1]
+[EARLIEST_COMPATIBLE_DISPLAYED_VERSION:1.0]
+[AUTHOR:TuNombre]
+[NAME:Nombres en Espanol]
+[DESCRIPTION:Traduccion de las palabras base del juego para generar nombres y lugares legibles en espanol.]

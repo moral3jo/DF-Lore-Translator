@@ -1,36 +1,169 @@
 # DF-Lore-Translator
 
-Traductor de lore en tiempo real para Dwarf Fortress. Lee el log del juego, traduce cada línea al español usando DeepL (o Google/Azure) y la muestra en consola con colores.
+Herramienta modular para jugar Dwarf Fortress en español. Incluye un traductor del log del juego en tiempo real, un panel de administración web, un mod para traducir los nombres propios del mundo y scripts de DFHack que se ejecutan desde dentro del juego.
 
 ---
 
-## Requisitos
+## Modulos
 
-- Python 3.10 o superior
-- Dwarf Fortress instalado (Steam o manual)
-- Una clave API de DeepL, Google Translate o Azure Translator
-  - DeepL con cuenta gratuita ofrece 500.000 caracteres al mes
-  - Google Translate ofrece 1.000.000 caracteres al mes
-  - Azure Translator ofrece 500.000 caracteres al mes
+| Modulo | Como arrancar | Puerto / ubicacion |
+|---|---|---|
+| Traductor en tiempo real | `df-lore-translator.bat` o `start-server.bat` + `start-watcher.bat` | Puerto 5100 |
+| Panel de administracion | `start-admin.bat` | Puerto 5200 |
+| Mod NombresEspanol | `mod/mods/NombresEspanol/start.bat` | — |
+| Script `nombres-espanoles` | Desde DFHack dentro del juego | Dentro del juego |
+| Script `exportar_enano` | Desde DFHack dentro del juego | Dentro del juego |
 
 ---
 
-## Instalación
+## Arranque rapido
+
+### 1. Traductor en tiempo real (gamelog)
+
+Lee el `gamelog.txt` del juego en tiempo real, traduce cada linea al español con DeepL (o Google/Azure) y la muestra en consola o en una ventana flotante sobre el juego.
+
+**Opcion A — Panel de control (recomendado):**
+
+```
+Doble clic en df-lore-translator.bat
+→ Seleccionar "Arrancar servidor + watcher"
+```
+
+Se abren dos ventanas: el servidor de traduccion (puerto 5100) y el watcher que lee el log.
+
+**Opcion B — Manual:**
 
 ```bash
-# 1. Clona el repositorio
-git clone https://github.com/TU_USUARIO/df-traductor.git
-cd df-traductor
+# Terminal 1: servidor de traduccion
+cd backend
+python api/app.py
 
-# 2. Crea un entorno virtual e instala las dependencias
+# Terminal 2: watcher del log
+cd backend
+python watcher/gamelog_watcher.py
+```
+
+El watcher detecta nuevas lineas en `gamelog.txt` cada 0.5s y las envia al servidor. Las traducciones aparecen en consola o en overlay segun la configuracion.
+
+---
+
+### 2. Panel de administracion web
+
+Interfaz web para gestionar la cache de traducciones, editar el glosario y ver estadisticas de uso.
+
+```bash
+start-admin.bat
+# o manualmente:
+cd backend
+python admin/app.py
+```
+
+Abre el navegador en `http://localhost:5200`.
+
+---
+
+### 3. Mod NombresEspanol
+
+Mod para Dwarf Fortress que traduce las palabras del diccionario del juego al español (`language_words.txt`). Incluye una interfaz web para traducir palabra por palabra y generar el fichero del mod.
+
+```bash
+mod/mods/NombresEspanol/start.bat
+```
+
+Instala las dependencias automaticamente y arranca la interfaz en el navegador. El flujo es:
+
+1. Pulsar "Traer datos" para importar las palabras del juego
+2. Traducir palabra por palabra (nombre, verbo, adjetivo...)
+3. Pulsar "Generar fichero" para exportar el mod listo para usar
+
+---
+
+### 4. Script DFHack: `nombres-espanoles`
+
+> **Requiere estar dentro del juego con DFHack activo.**
+
+Asigna nombres españoles a enanos, fortalezas y sitios del mundo. Los nombres son personajes y lugares conocidos de la cultura española.
+
+**Antes de usarlo**, despliega los scripts a la carpeta de DFHack:
+
+```bash
+# Desde la raiz del proyecto (fuera del juego)
+python deploy.py
+```
+
+**Dentro del juego**, en la consola de DFHack:
+
+```
+nombres-espanoles              # muestra ayuda
+nombres-espanoles enanos       # renombra los enanos de tu fortaleza
+nombres-espanoles fortaleza    # renombra la fortaleza actual
+nombres-espanoles sitios       # renombra los sitios del mundo
+nombres-espanoles todo         # renombra enanos + fortaleza + sitios
+nombres-espanoles todo forzar  # sobrescribe nombres ya asignados
+```
+
+Para que se ejecute automaticamente al cargar la partida, añade esto al archivo `dfhack-config/init.d/nombres.lua` de tu instalacion de DF:
+
+```lua
+dfhack.run_script('nombres-espanoles', 'enanos')
+```
+
+---
+
+### 5. Script DFHack: `exportar_enano`
+
+> **Requiere estar dentro del juego con DFHack activo.**
+
+Añade un boton **[E]** en la ficha de cada enano. Al pulsarlo, exporta los datos del enano a un archivo TXT.
+
+**Antes de usarlo**, despliega los scripts:
+
+```bash
+python deploy.py
+```
+
+**Dentro del juego**, en la consola de DFHack:
+
+```
+enable exportar_enano
+```
+
+El boton `[E]` aparecera en la esquina superior derecha de la pantalla de ficha del enano (`dwarfmode/ViewSheets/UNIT`).
+
+---
+
+### Desplegar scripts a DFHack
+
+Copia o enlaza los scripts Lua a la carpeta de DFHack para que el juego los encuentre:
+
+```bash
+# Enlace simbolico (recomendado — los cambios son instantaneos)
+python deploy.py
+
+# Copiar archivos (si los symlinks no funcionan)
+python deploy.py --copy
+```
+
+> En Windows, el enlace simbolico requiere **modo Desarrollador activo** o ejecutar como Administrador.
+
+---
+
+## Configuracion inicial
+
+### 1. Instalar dependencias
+
+```bash
 python -m venv venv
 venv\Scripts\pip install -r backend\requirements.txt
+```
 
-# 3. Copia la plantilla de configuración y rellena tus datos
+### 2. Configurar variables de entorno
+
+```bash
 copy .env.example .env
 ```
 
-Edita `.env` con tus valores:
+Edita `.env` con tus datos:
 
 ```env
 TRANSLATION_ENGINE=deepl
@@ -38,179 +171,87 @@ DF_INSTALL_PATH=D:/SteamLibrary/steamapps/common/Dwarf Fortress
 DEEPL_API_KEY=tu-clave-aqui
 ```
 
-> **Nota:** Solo necesitas rellenar la clave API del motor que vayas a usar.
+Solo necesitas la clave del motor que vayas a usar. DeepL ofrece 500.000 caracteres/mes gratis; Google Translate 1.000.000; Azure 500.000.
 
 ---
 
-## Arranque rápido — Panel de Control
+## Requisitos
 
-Haz doble clic en **`df-lore-translator.bat`** para abrir el panel de control:
-
-```
-====================================================
-       DF-Lore-Translator  -  Panel de Control
-====================================================
-
-  Motor: deepl     Pitido: activado     Visual: console
-  Servidor: o detenido      Watcher: o detenido
-
-----------------------------------------------------
-
-  > Arrancar servidor + watcher
-    Parar todo
-    Desplegar scripts Lua a DFHack
-    Configuracion
-    Salir
-```
-
-Desde aquí puedes:
-
-- **Arrancar y parar** el servidor y el watcher con una sola opción
-- **Desplegar los scripts Lua** a la carpeta de DFHack (enlace simbólico o copia)
-- **Cambiar la configuración** (motor de traducción, visualizador, pitido en consola)
-
-### Arranque manual (alternativa)
-
-Si prefieres arrancar los servicios por separado, usa los `.bat` individuales o la línea de comandos:
-
-**Terminal 1:**
-```bash
-cd backend
-python api/app.py
-```
-
-**Terminal 2:**
-```bash
-cd backend
-python watcher/gamelog_watcher.py
-```
+- Python 3.10 o superior
+- Dwarf Fortress instalado (Steam o manual)
+- DFHack instalado (para los scripts Lua)
+- Clave API de DeepL, Google Translate o Azure Translator
 
 ---
 
-## Configuración
+## Configuracion avanzada
 
 ### Variables de entorno (`.env`)
 
-| Variable | Descripción | Valores |
+| Variable | Descripcion | Valores |
 |---|---|---|
-| `TRANSLATION_ENGINE` | Motor de traducción activo | `deepl` / `google` / `azure` |
-| `DF_INSTALL_PATH` | Ruta de instalación de Dwarf Fortress | Ruta absoluta |
+| `TRANSLATION_ENGINE` | Motor de traduccion activo | `deepl` / `google` / `azure` |
+| `DF_INSTALL_PATH` | Ruta de instalacion de Dwarf Fortress | Ruta absoluta |
 | `DEEPL_API_KEY` | Clave API de DeepL | — |
 | `GOOGLE_API_KEY` | Clave API de Google Translate | — |
 | `AZURE_API_KEY` | Clave API de Azure Translator | — |
-| `AZURE_REGION` | Región de Azure | `westeurope`, etc. |
+| `AZURE_REGION` | Region de Azure | `westeurope`, etc. |
 | `BEEP_ENABLED` | Pitido en consola al traducir | `true` / `false` |
 
-### Ajustes técnicos (`backend/config.yaml`)
-
-El archivo `config.yaml` contiene ajustes técnicos y la configuración del visualizador:
+### Ajustes tecnicos (`backend/config.yaml`)
 
 - `watcher.poll_interval_seconds` — frecuencia de lectura del log (por defecto 0.5s)
 - `watcher.translation_service_url` — URL del servidor (por defecto `http://localhost:5100`)
-- `cache.path` — ruta de la base de datos SQLite
-- `display.mode` — modo de visualización (`console` / `overlay`)
-- `display.overlay.*` — opciones de la ventana flotante (ver sección siguiente)
-
-> Las claves API y la ruta de DF se leen primero desde `.env`. Los valores de `config.yaml` solo se usan como fallback.
+- `display.mode` — modo de visualizacion (`console` / `overlay`)
+- `display.overlay.*` — opciones de la ventana flotante
 
 ---
 
 ## Visualizador
 
-El watcher soporta dos modos de mostrar las traducciones, seleccionables desde el panel de control (**Configuración → Cambiar visualizador**) o editando `display.mode` en `config.yaml`.
-
 ### Modo `console` (por defecto)
 
-Las traducciones aparecen en la misma ventana de consola del watcher, con los colores originales del juego convertidos a ANSI. Es el modo más sencillo y no requiere dependencias adicionales.
+Las traducciones aparecen en la ventana del watcher con los colores originales del juego en ANSI.
 
 ### Modo `overlay`
 
-Abre una **ventana flotante transparente** sobre el juego que muestra las traducciones en tiempo real con texto contorneado para máxima legibilidad sobre cualquier fondo.
+Ventana flotante transparente sobre el juego. Click-through: los clics pasan al juego.
 
-Se compone de **dos ventanas**:
+- **Barra de control**: boton `⠿` para arrastrar, boton `▼`/`▲` para colapsar
+- **Area de texto**: fondo transparente, texto con contorno para legibilidad
 
-| Ventana | Descripción |
-|---|---|
-| **Barra de control** | Tira fina encima del área de texto con dos minibotones |
-| **Área de texto** | Fondo 100 % transparente, click-through (los clics pasan al juego) |
-
-**Botones de la barra de control:**
-- **`⠿`** — arrastra aquí para mover toda la overlay a otro lugar de la pantalla.
-- **`▼`/`▲`** — colapsa o expande el área de texto (la barra siempre permanece visible).
-
-La posición inicial se configura con `x`/`y` en `config.yaml`; la barra se coloca automáticamente encima del área de texto.
-
-Para activarlo, cambia `display.mode` a `overlay` en `config.yaml` (o usa el panel de control) y reinicia el watcher. Requiere tener PyQt6 instalado (`pip install PyQt6`).
-
-#### Las dos ventanas del modo overlay
-
-Al arrancar en modo overlay se abren **dos ventanas**:
-
-| Ventana | Título | Contenido |
-|---|---|---|
-| Consola `cmd` | `DFLT-Watcher` | Mensajes de estado, errores, avisos de markup |
-| Overlay Qt | _(sin barra de título)_ | Traducciones flotando sobre el juego |
-
-La consola cmd es necesaria para que el proceso siga vivo — **no la cierres** o el watcher se detendrá. Puedes minimizarla o moverla a un rincón; las traducciones seguirán apareciendo en el overlay.
-
-#### Configuración del overlay
-
-Todas las opciones se editan en `backend/config.yaml` bajo `display.overlay`. Los cambios se aplican al reiniciar el watcher.
+Para activarlo: cambia `display.mode` a `overlay` en `config.yaml` o usa el panel de control.
 
 ```yaml
 display:
   mode: overlay
   overlay:
-    x: 10                        # píxeles desde el borde izquierdo de la pantalla
-    y: 10                        # píxeles desde el borde superior
-    width: 700                   # ancho de la ventana en píxeles
-    height: 300                  # alto de la ventana en píxeles
-    opacity: 1.0                 # 0.0 = invisible · 1.0 = sólido (el fondo siempre es transparente)
-    font_size: 13                # tamaño de fuente en puntos
-    font_family: "Consolas"      # cualquier fuente instalada en el sistema
-    default_text_color: "#FFFFFF"  # color para texto sin markup DFHack
-    outline_color: "#000000"     # color del contorno del texto
-    outline_width: 2             # grosor del contorno en píxeles (1–4 recomendado)
-    always_on_top: true          # mantener sobre todas las ventanas
-    max_messages: 10             # máximo de mensajes visibles a la vez
-    fade_seconds: 0              # segundos hasta desvanecerse (0 = permanente)
+    x: 10
+    y: 10
+    width: 700
+    height: 300
+    font_size: 13
+    font_family: "Consolas"
+    default_text_color: "#FFFFFF"
+    outline_color: "#000000"
+    outline_width: 2
+    always_on_top: true
+    max_messages: 10
+    fade_seconds: 0     # 0 = permanente
 ```
 
-| Opción | Descripción |
-|---|---|
-| `x` / `y` | Posición de la esquina superior izquierda de la ventana |
-| `width` / `height` | Tamaño de la ventana |
-| `opacity` | Afecta solo al texto (el fondo es siempre transparente) |
-| `font_family` | `"Consolas"`, `"Courier New"`, `"Segoe UI"`, cualquier fuente del sistema |
-| `default_text_color` | Color del texto sin markup DFHack; el markup sobreescribe este color por palabras |
-| `outline_color` | Color del contorno; `"#000000"` negro es lo más habitual |
-| `outline_width` | `2` es sutil, `3–4` da más contraste sobre fondos claros |
-| `max_messages` | Cuando se supera, el mensaje más antiguo desaparece automáticamente |
-| `fade_seconds` | Con `0` los mensajes son permanentes; con `10` desaparecen solos a los 10s |
-
-#### Posicionamiento con dos monitores
-
-Las coordenadas `x`/`y` son absolutas respecto al escritorio virtual completo. Para colocar el overlay en el **segundo monitor**, suma la resolución horizontal del primero al valor de `x`:
+Para el segundo monitor, suma la resolucion horizontal del primero al valor de `x`:
 
 ```yaml
-# Monitor principal: 1920 × 1080 → segundo monitor empieza en x = 1920
-x: 1930
-y: 10
-```
-
-Si el segundo monitor está a la izquierda o arriba del principal, usa valores negativos:
-
-```yaml
-# Segundo monitor a la izquierda (también 1920 px de ancho)
-x: -1910
+x: 1930   # segundo monitor a la derecha de uno de 1920px
 y: 10
 ```
 
 ---
 
-## Glosario de términos (solo DeepL)
+## Glosario de terminos (solo DeepL)
 
-El archivo `backend/glossary.txt` permite forzar traducciones concretas para palabras que DeepL traduce mal. Formato:
+El archivo `backend/glossary.txt` fuerza traducciones concretas para palabras que DeepL traduce mal:
 
 ```
 # Comentarios con #
@@ -220,75 +261,60 @@ dwarf    = enano
 dwarves  = enanos
 ```
 
-**Para añadir o cambiar términos:**
-
-1. Edita `backend/glossary.txt`
-2. Reinicia el servidor (opción 2 → 1 en el panel, o reinicia `start-server.bat`)
-
-El servidor detecta automáticamente los cambios, borra el glosario anterior en DeepL y crea uno nuevo.
+Para aplicar cambios: reinicia el servidor. Se sincroniza automaticamente con DeepL al arrancar.
 
 ---
 
-## Despliegue de scripts Lua
+## Cache de traducciones
 
-Para que los scripts Lua funcionen dentro del juego, necesitan estar en la carpeta de DFHack. Usa la opción **[3]** del panel de control o ejecuta:
+Todas las traducciones se guardan en `backend/cache/translations.db` (SQLite). Las peticiones repetidas se sirven desde cache sin coste de API.
+
+### Limpiar la cache (`manage.py`)
 
 ```bash
-# Enlace simbólico (recomendado — los cambios son instantáneos)
-python deploy.py
-
-# Copiar archivos (si los symlinks no funcionan)
-python deploy.py --copy
-```
-
-> El enlace simbólico requiere **modo Desarrollador activo** o ejecutar como Administrador en Windows.
-
----
-
-## Caché de traducciones
-
-Todas las traducciones se guardan en una base de datos SQLite (`backend/cache/translations.db`). Las peticiones repetidas se sirven desde caché sin coste de API.
-
-### Editar una traducción manualmente
-
-Abre la base de datos con cualquier cliente SQLite (por ejemplo [DB Browser for SQLite](https://sqlitebrowser.org/)) y modifica el campo `translated`. Después pon `is_edited = 1` en esa fila para que nunca sea sobreescrita ni eliminada por las limpiezas automáticas.
-
----
-
-## Limpieza de caché (`manage.py`)
-
-Desde la raíz del proyecto:
-
-```bash
-# Ver qué se eliminaría sin borrar nada (recomendado antes de limpiar)
+# Ver que se eliminaria sin borrar nada
 python manage.py clean --min-uses 2 --older-than-days 30 --dry-run
 
-# Eliminar entradas usadas menos de 2 veces Y con más de 30 días sin usarse
+# Eliminar entradas usadas menos de 2 veces Y sin usar en mas de 30 dias
 python manage.py clean --min-uses 2 --older-than-days 30
 
-# Solo eliminar por antigüedad (entradas no usadas en más de 60 días)
+# Solo por antigüedad
 python manage.py clean --older-than-days 60
 
-# Solo eliminar por uso (entradas usadas menos de 3 veces)
+# Solo por uso
 python manage.py clean --min-uses 3
 ```
 
-**Reglas:**
-- Si se combinan `--min-uses` y `--older-than-days`, se eliminan solo las entradas que cumplan **ambas** condiciones.
-- Las entradas con `is_edited = 1` **nunca** se eliminan, independientemente de los filtros.
+Las entradas con `is_edited = 1` nunca se eliminan.
+
+### Editar una traduccion manualmente
+
+Abre `translations.db` con [DB Browser for SQLite](https://sqlitebrowser.org/), edita el campo `translated` y pon `is_edited = 1` para que no sea sobreescrita.
 
 ---
 
 ## Logs
 
-Los logs se generan automáticamente en `backend/logs/`:
+Los logs se generan en `backend/logs/`:
 
 | Archivo | Contenido |
 |---|---|
-| `translations_YYYY-MM-DD.log` | Log diario de auditoría con cada par EN/ES traducido |
-| `markup_mismatch.jsonl` | Entradas donde los códigos de color no se conservaron correctamente |
+| `translations_YYYY-MM-DD.log` | Log diario con cada par EN/ES traducido |
+| `markup_mismatch.jsonl` | Entradas donde los codigos de color no se conservaron |
+| `rules_debug.jsonl` | Debug del motor de reglas locales |
 
-Revísalo periódicamente para detectar traducciones malas y añadir los términos problemáticos al glosario.
+---
+
+## Generar distribucion (`build.py`)
+
+Genera un ZIP listo para distribuir que incluye Python embebido (el usuario final no necesita Python instalado):
+
+```bash
+python build.py              # version "dev"
+python build.py --version 1.0.0
+```
+
+El resultado queda en `dist/DF-Lore-Translator-vX.X.X.zip`.
 
 ---
 
@@ -296,27 +322,32 @@ Revísalo periódicamente para detectar traducciones malas y añadir los términ
 
 ```
 df-traductor/
-├── .env.example              ← plantilla de variables de entorno
-├── .gitignore
-├── df-lore-translator.bat         ← panel de control (arrancar, parar, config)
-├── start-server.bat          ← arranca solo el servidor
-├── start-watcher.bat         ← arranca solo el watcher
-├── deploy.py                 ← despliega scripts Lua a DFHack
-├── manage.py                 ← herramienta de administración de caché
+├── df-lore-translator.bat        ← panel de control principal
+├── start-server.bat              ← arranca solo el servidor
+├── start-watcher.bat             ← arranca solo el watcher
+├── start-admin.bat               ← panel de administracion web
+├── deploy.py                     ← despliega scripts Lua a DFHack
+├── manage.py                     ← gestion de la cache SQLite
+├── build.py                      ← genera distribucion ZIP
+├── .env.example                  ← plantilla de configuracion
 ├── backend/
-│   ├── config.yaml           ← ajustes técnicos
-│   ├── requirements.txt      ← dependencias Python
-│   ├── glossary.txt          ← términos forzados para DeepL
-│   ├── translation_cache.py  ← módulo de caché SQLite
-│   ├── api/app.py            ← servidor HTTP de traducción
-│   ├── watcher/              ← lector de gamelog.txt
-│   ├── visualizer/           ← modos de visualización
-│   │   ├── base.py           ←   interfaz base
-│   │   ├── console.py        ←   salida ANSI por consola
-│   │   └── overlay.py        ←   ventana flotante PyQt6
-│   ├── translator/           ← motores (DeepL, Google, Azure)
-│   ├── rules/                ← reglas locales (sin API)
-│   ├── cache/                ← base de datos SQLite (generada)
-│   └── logs/                 ← logs diarios (generados)
-└── mod/scripts/              ← scripts Lua para DFHack
+│   ├── config.yaml               ← ajustes tecnicos
+│   ├── requirements.txt          ← dependencias Python
+│   ├── glossary.txt              ← terminos forzados para DeepL
+│   ├── api/app.py                ← servidor HTTP de traduccion (puerto 5100)
+│   ├── watcher/                  ← lector de gamelog.txt
+│   ├── visualizer/               ← modos de visualizacion (console / overlay)
+│   ├── translator/               ← motores (DeepL, Google, Azure)
+│   ├── rules/                    ← reglas locales sin llamada a API
+│   ├── admin/                    ← panel de administracion web (puerto 5200)
+│   ├── cache/                    ← base de datos SQLite (generada)
+│   └── logs/                     ← logs diarios (generados)
+└── mod/
+    ├── dfhack-config/scripts/    ← scripts Lua para DFHack
+    │   ├── nombres-espanoles.lua ←   asigna nombres españoles a enanos/sitios
+    │   └── exportar_enano.lua    ←   boton E en la ficha del enano
+    └── mods/NombresEspanol/      ← mod DF para traducir el diccionario del juego
+        ├── start.bat             ←   arranca la interfaz del mod
+        ├── translator.py         ←   motor de traduccion del mod
+        └── objects/language_words.txt  ← diccionario traducido
 ```

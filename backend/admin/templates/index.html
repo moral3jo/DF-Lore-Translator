@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DF Traductor — Panel de gestión</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root { --sidebar-w: 230px; }
+    body { overflow: hidden; height: 100vh; }
+    #sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: #0d1117; border-right: 1px solid #30363d;
+      display: flex; flex-direction: column;
+    }
+    #sidebar .brand {
+      padding: 1.2rem 1rem 1rem;
+      font-size: 0.85rem; font-weight: 700; letter-spacing: .05em;
+      color: #8b949e; text-transform: uppercase;
+      border-bottom: 1px solid #21262d;
+    }
+    #sidebar .brand span { color: #f0883e; }
+    #sidebar nav .nav-link {
+      color: #8b949e; border-radius: 6px;
+      padding: .5rem .8rem; margin: .15rem .6rem;
+      font-size: .93rem;
+      display: flex; align-items: center; gap: .55rem;
+    }
+    #sidebar nav .nav-link:hover { background: #161b22; color: #e6edf3; }
+    #sidebar nav .nav-link.active { background: #1f2937; color: #f0883e; font-weight: 600; }
+    #sidebar nav .nav-link i { font-size: 1rem; width: 1.2rem; text-align: center; }
+    #main { flex: 1; overflow-y: auto; background: #0d1117; }
+    .section { display: none; padding: 1.8rem 2rem; }
+    .section.active { display: block; }
+    .stat-card {
+      background: #161b22; border: 1px solid #21262d;
+      border-radius: 10px; padding: 1.2rem 1.4rem;
+    }
+    .stat-card .label { font-size: .8rem; color: #8b949e; text-transform: uppercase; letter-spacing: .05em; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; color: #e6edf3; line-height: 1.1; }
+    .stat-card .sub { font-size: .8rem; color: #8b949e; margin-top: .25rem; }
+    .stat-card .icon { font-size: 1.6rem; opacity: .35; }
+    .chart-card { background: #161b22; border: 1px solid #21262d; border-radius: 10px; padding: 1.2rem 1.4rem; }
+    .chart-card h6 { color: #8b949e; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 1rem; }
+    table.df-table { font-size: .88rem; }
+    table.df-table th { color: #8b949e; font-weight: 500; border-color: #21262d; white-space: nowrap; }
+    table.df-table td { border-color: #21262d; vertical-align: middle; }
+    table.df-table tr:hover td { background: #161b22; }
+    .truncate { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .badge-engine { font-size: .72rem; letter-spacing: .03em; }
+    .filter-bar { background: #161b22; border: 1px solid #21262d; border-radius: 10px; padding: 1rem 1.2rem; }
+    .section-title { font-size: 1.25rem; font-weight: 600; color: #e6edf3; margin-bottom: .25rem; }
+    .section-sub { font-size: .88rem; color: #8b949e; margin-bottom: 1.5rem; }
+    .btn-action { padding: .2rem .5rem; font-size: .8rem; }
+    #toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; }
+    .pagination { --bs-pagination-bg: #161b22; --bs-pagination-border-color: #30363d; }
+    .rule-row td:first-child { color: #8b949e; font-size: .8rem; }
+    .code-pattern { font-family: 'Consolas', monospace; font-size: .82rem; color: #79c0ff; }
+    .handler-badge { font-size: .73rem; }
+    .edited-lock { color: #f0883e; }
+  </style>
+</head>
+<body class="d-flex" style="height:100vh;overflow:hidden;">
+
+<!-- ─── SIDEBAR ─────────────────────────────────────────────────── -->
+<div id="sidebar">
+  <div class="brand">
+    <span>⚒ DF</span> Traductor
+    <div style="font-size:.72rem;color:#484f58;font-weight:400;margin-top:.2rem;">Panel de gestión</div>
+  </div>
+  <nav class="py-2">
+    <a class="nav-link active" data-section="dashboard" href="#">
+      <i class="bi bi-grid-1x2"></i> Dashboard
+    </a>
+    <a class="nav-link" data-section="traducciones" href="#">
+      <i class="bi bi-database"></i> Traducciones
+    </a>
+    <a class="nav-link" data-section="reglas" href="#">
+      <i class="bi bi-funnel"></i> Filtros / Reglas
+    </a>
+    <a class="nav-link" data-section="glosario" href="#">
+      <i class="bi bi-book"></i> Glosario
+    </a>
+  </nav>
+  <div class="mt-auto p-3" style="font-size:.72rem;color:#484f58;">
+    Puerto 5200 · <span id="db-path-short"></span>
+  </div>
+</div>
+
+<!-- ─── MAIN ──────────────────────────────────────────────────────── -->
+<div id="main">
+
+  <!-- ══ DASHBOARD ══════════════════════════════════════════════════ -->
+  <section id="sec-dashboard" class="section active">
+    <div class="section-title">Dashboard</div>
+    <div class="section-sub">Resumen del estado de la base de datos de traducciones.</div>
+
+    <div class="row g-3 mb-4" id="stat-cards">
+      <div class="col-6 col-lg-3">
+        <div class="stat-card d-flex justify-content-between align-items-start">
+          <div>
+            <div class="label">Llamadas a la API</div>
+            <div class="value" id="s-total-unique">—</div>
+            <div class="sub">textos únicos traducidos</div>
+          </div>
+          <i class="bi bi-cloud-upload icon"></i>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card d-flex justify-content-between align-items-start">
+          <div>
+            <div class="label">Ahorradas (caché)</div>
+            <div class="value" id="s-cache-hits">—</div>
+            <div class="sub" id="s-hit-rate">—% del total</div>
+          </div>
+          <i class="bi bi-lightning icon"></i>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card d-flex justify-content-between align-items-start">
+          <div>
+            <div class="label">Paradas por filtro</div>
+            <div class="value" id="s-rule-hits">—</div>
+            <div class="sub">desde primer reinicio con tracking</div>
+          </div>
+          <i class="bi bi-funnel icon"></i>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card d-flex justify-content-between align-items-start">
+          <div>
+            <div class="label">Inactivas +30d</div>
+            <div class="value" id="s-stale30">—</div>
+            <div class="sub">candidatas a limpiar</div>
+          </div>
+          <i class="bi bi-clock-history icon"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tarjeta caracteres DeepL -->
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-lg-6">
+        <div class="stat-card">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="label">Caracteres DeepL · este mes</div>
+              <div class="d-flex align-items-baseline gap-2 mt-1">
+                <span class="value" id="s-chars-month" style="font-size:1.6rem;">—</span>
+                <span class="text-secondary" style="font-size:.9rem;">/ 500.000</span>
+              </div>
+            </div>
+            <div class="text-end">
+              <div style="font-size:1.5rem;font-weight:700;" id="s-chars-pct">—%</div>
+              <div class="text-secondary" style="font-size:.75rem;">del límite mensual</div>
+            </div>
+          </div>
+          <div class="progress mb-2" style="height:6px;background:#21262d;">
+            <div class="progress-bar" id="s-chars-bar" role="progressbar" style="width:0%;transition:width .6s;"></div>
+          </div>
+          <div class="d-flex justify-content-between" style="font-size:.78rem;color:#8b949e;">
+            <span>Hoy: <strong id="s-chars-today" class="text-light">—</strong> chars</span>
+            <span>Total histórico: <strong id="s-chars-total" class="text-light">—</strong></span>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="chart-card" style="padding:.9rem 1.2rem;">
+          <h6>Caracteres por día (últimos 30 días)</h6>
+          <canvas id="chart-chars" height="80"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-8">
+        <div class="chart-card">
+          <h6>Peticiones por día (últimos 30 días)</h6>
+          <p class="text-secondary mb-2" style="font-size:.78rem;">
+            El desglose por día solo acumula datos desde que el servidor se reinició con el tracking activo.
+            Las tarjetas de arriba muestran los totales históricos calculados desde la BD.
+          </p>
+          <canvas id="chart-daily" height="90"></canvas>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="chart-card">
+          <h6>Distribución por motor</h6>
+          <canvas id="chart-engine" height="170"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h6>Top 10 más usadas (cache hits)</h6>
+      <table class="table df-table mb-0">
+        <thead>
+          <tr>
+            <th>#</th><th>Original</th><th>Traducción</th><th class="text-end">Usos</th>
+          </tr>
+        </thead>
+        <tbody id="top10-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ TRADUCCIONES ════════════════════════════════════════════════ -->
+  <section id="sec-traducciones" class="section">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <div class="section-title">Base de datos de traducciones</div>
+        <div class="section-sub mb-0">Filtra, edita y elimina entradas de la caché.</div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-secondary" onclick="exportCSV()">
+          <i class="bi bi-download"></i> CSV
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="openBulkDeleteModal()">
+          <i class="bi bi-trash3"></i> Eliminar filtradas
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-bar mb-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-lg-3">
+          <label class="form-label mb-1" style="font-size:.8rem;color:#8b949e;">Buscar texto</label>
+          <input type="text" id="f-search" class="form-control form-control-sm" placeholder="original o traducción…">
+        </div>
+        <div class="col-lg-2">
+          <label class="form-label mb-1" style="font-size:.8rem;color:#8b949e;">Motor</label>
+          <select id="f-engine" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            <option value="deepl">DeepL</option>
+            <option value="google">Google</option>
+            <option value="azure">Azure</option>
+            <option value="rule">Regla</option>
+          </select>
+        </div>
+        <div class="col-lg-2">
+          <label class="form-label mb-1" style="font-size:.8rem;color:#8b949e;">Máx. usos (≤)</label>
+          <input type="number" id="f-minuses" class="form-control form-control-sm" placeholder="ej. 1" min="1">
+        </div>
+        <div class="col-lg-2">
+          <label class="form-label mb-1" style="font-size:.8rem;color:#8b949e;">Sin usar (días ≥)</label>
+          <input type="number" id="f-maxdays" class="form-control form-control-sm" placeholder="ej. 30" min="1">
+        </div>
+        <div class="col-lg-1">
+          <label class="form-label mb-1" style="font-size:.8rem;color:#8b949e;">Solo edit.</label>
+          <div class="form-check mt-1">
+            <input class="form-check-input" type="checkbox" id="f-edited">
+          </div>
+        </div>
+        <div class="col-lg-2 d-flex gap-2 align-items-end">
+          <button class="btn btn-sm btn-primary flex-grow-1" onclick="loadTranslations(1)">
+            <i class="bi bi-search"></i> Filtrar
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+      <div class="row g-2 mt-1 align-items-end">
+        <div class="col-lg-3">
+          <label class="form-label mb-1" style="font-size:.8rem;color:#8b949e;">Ordenar por</label>
+          <select id="f-sort" class="form-select form-select-sm">
+            <option value="last_used">Último uso</option>
+            <option value="use_count">Nº usos</option>
+            <option value="created_at">Fecha creación</option>
+            <option value="original">Original (A-Z)</option>
+          </select>
+        </div>
+        <div class="col-lg-2">
+          <label class="form-label mb-1" style="font-size:.8rem;color:#8b949e;">Orden</label>
+          <select id="f-order" class="form-select form-select-sm">
+            <option value="desc">Descendente</option>
+            <option value="asc">Ascendente</option>
+          </select>
+        </div>
+        <div class="col-lg-2">
+          <label class="form-label mb-1" style="font-size:.8rem;color:#8b949e;">Por página</label>
+          <select id="f-perpage" class="form-select form-select-sm">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <small class="text-secondary" id="t-info">—</small>
+      <div id="t-pagination" class="d-flex gap-1"></div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table df-table">
+        <thead>
+          <tr>
+            <th>Original</th>
+            <th>Traducción</th>
+            <th>Motor</th>
+            <th>Usos</th>
+            <th>Último uso</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="t-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ REGLAS ══════════════════════════════════════════════════════ -->
+  <section id="sec-reglas" class="section">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <div class="section-title">Filtros y Reglas</div>
+        <div class="section-sub mb-0">
+          Gestiona <code>rules.yaml</code>. Las reglas se evalúan <strong>en orden</strong> antes de consultar la caché.
+          El handler <code>ignore_line</code> descarta la línea sin traducirla.
+        </div>
+      </div>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modal-add-rule">
+        <i class="bi bi-plus-lg"></i> Nueva regla
+      </button>
+    </div>
+
+    <div class="table-responsive mb-4">
+      <table class="table df-table">
+        <thead>
+          <tr><th>#</th><th>Patrón (regex)</th><th>Handler</th><th>Descripción</th><th></th></tr>
+        </thead>
+        <tbody id="rules-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Testeador de patrones -->
+    <div class="chart-card">
+      <h6><i class="bi bi-play-circle me-1"></i>Testeador de líneas</h6>
+      <p class="text-secondary" style="font-size:.83rem;">
+        Escribe una línea tal como aparecería en el gamelog y comprueba si alguna regla coincide.
+      </p>
+      <div class="d-flex gap-2">
+        <input type="text" id="test-input" class="form-control" placeholder="Ej: Loading fortress…" style="font-family:monospace;font-size:.88rem;">
+        <button class="btn btn-outline-primary btn-sm px-3" onclick="testRule()">Probar</button>
+      </div>
+      <div id="test-result" class="mt-3"></div>
+    </div>
+  </section>
+
+  <!-- ══ GLOSARIO ════════════════════════════════════════════════════ -->
+  <section id="sec-glosario" class="section">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <div class="section-title">Glosario DeepL</div>
+        <div class="section-sub mb-0">
+          Términos en <code>glossary.txt</code>. Solo activo si usas el motor DeepL.
+          <strong>Reinicia el servidor</strong> tras modificar para sincronizar con DeepL.
+        </div>
+      </div>
+      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modal-add-gloss">
+        <i class="bi bi-plus-lg"></i> Añadir término
+      </button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table df-table" style="max-width:640px;">
+        <thead>
+          <tr><th>Inglés (original)</th><th>Español (traducción)</th><th></th></tr>
+        </thead>
+        <tbody id="gloss-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+</div><!-- /main -->
+
+<!-- ─── MODALES ──────────────────────────────────────────────────── -->
+
+<!-- Editar traducción -->
+<div class="modal fade" id="modal-edit-tr" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar traducción</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label text-secondary" style="font-size:.82rem;">Original</label>
+          <div id="edit-original" class="text-light p-2 rounded" style="background:#0d1117;font-family:monospace;font-size:.85rem;word-break:break-all;"></div>
+        </div>
+        <div class="mb-1">
+          <label class="form-label text-secondary" style="font-size:.82rem;">Traducción <span class="text-warning">·</span> <small class="text-secondary">se marcará como editada manualmente</small></label>
+          <textarea id="edit-translated" class="form-control" rows="3" style="font-family:monospace;font-size:.88rem;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="saveEdit()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmación borrado masivo -->
+<div class="modal fade" id="modal-bulk-del" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header border-danger">
+        <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Eliminar entradas</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Se van a eliminar <strong id="bulk-count" class="text-danger">0</strong> entradas que cumplen los filtros activos.</p>
+        <p class="text-secondary mb-0" style="font-size:.85rem;">Las entradas editadas manualmente (<i class="bi bi-lock-fill text-warning"></i>) <strong>nunca se eliminan</strong> en esta operación.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmBulkDelete()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Añadir regla -->
+<div class="modal fade" id="modal-add-rule" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nueva regla</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Patrón (regex Python)</label>
+          <input type="text" id="rule-pattern" class="form-control font-monospace"
+            placeholder="Ej: (?i)^loading fortress.*">
+          <div class="form-text">Se usa <code>re.match()</code> — el patrón se ancla al inicio. Usa <code>.*</code> al final para texto variable.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Handler</label>
+          <select id="rule-handler" class="form-select" onchange="onHandlerChange()">
+            <option value="ignore_line">ignore_line — ignorar / no traducir la línea</option>
+            <option value="job_completed">job_completed — formato de trabajo completado</option>
+            <option value="custom">custom — escribir manualmente…</option>
+          </select>
+        </div>
+        <div class="mb-3" id="rule-handler-custom-wrap" style="display:none;">
+          <label class="form-label">Nombre del handler <span class="text-secondary">(debe existir en handlers.py)</span></label>
+          <input type="text" id="rule-handler-custom" class="form-control font-monospace" placeholder="nombre_del_handler">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Descripción <span class="text-secondary">(opcional)</span></label>
+          <input type="text" id="rule-description" class="form-control" placeholder="Para qué sirve esta regla…">
+        </div>
+        <div id="rule-save-error" class="text-danger" style="font-size:.85rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="saveRule()">Añadir regla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Añadir término glosario -->
+<div class="modal fade" id="modal-add-gloss" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Añadir término al glosario</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Inglés (original)</label>
+          <input type="text" id="gloss-en" class="form-control" placeholder="ej. armorer">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Español (traducción)</label>
+          <input type="text" id="gloss-es" class="form-control" placeholder="ej. armero">
+        </div>
+        <div id="gloss-error" class="text-danger" style="font-size:.85rem;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="saveGloss()">Añadir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit glossary term -->
+<div class="modal fade" id="modal-edit-gloss" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar término</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label text-secondary">Inglés</label>
+          <div id="gloss-edit-en" class="p-2 rounded text-light font-monospace" style="background:#0d1117;font-size:.9rem;"></div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Español</label>
+          <input type="text" id="gloss-edit-es" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary btn-sm" onclick="saveGlossEdit()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<!-- ─── SCRIPTS ──────────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+// ─── Estado global ───────────────────────────────────────────────────────────
+let currentPage = 1;
+let totalPages  = 1;
+let editRowId   = null;
+let glossEditTerm = null;
+let chartDaily  = null;
+let chartEngine = null;
+let chartChars  = null;
+const DEEPL_LIMIT = 500_000;
+
+// ─── Navegación ──────────────────────────────────────────────────────────────
+document.querySelectorAll('#sidebar nav .nav-link').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const sec = link.dataset.section;
+    document.querySelectorAll('#sidebar nav .nav-link').forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`sec-${sec}`).classList.add('active');
+    if (sec === 'dashboard')    loadDashboard();
+    if (sec === 'traducciones') loadTranslations(1);
+    if (sec === 'reglas')       loadRules();
+    if (sec === 'glosario')     loadGlosario();
+  });
+});
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const id = 'toast-' + Date.now();
+  const bg  = type === 'success' ? 'bg-success' : type === 'danger' ? 'bg-danger' : 'bg-secondary';
+  document.getElementById('toast-container').insertAdjacentHTML('beforeend', `
+    <div id="${id}" class="toast align-items-center text-white ${bg} border-0 mb-2" role="alert">
+      <div class="d-flex">
+        <div class="toast-body" style="font-size:.88rem;">${msg}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>`);
+  const el = new bootstrap.Toast(document.getElementById(id), {delay: 3000});
+  el.show();
+  setTimeout(() => document.getElementById(id)?.remove(), 4000);
+}
+
+// ─── Fetch helper ────────────────────────────────────────────────────────────
+async function api(url, opts = {}) {
+  const res = await fetch(url, {
+    headers: {'Content-Type': 'application/json'},
+    ...opts,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({error: `HTTP ${res.status}`}));
+    throw err;
+  }
+  return res.json();
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const d = await api('/api/stats');
+  document.getElementById('s-total-unique').textContent = d.total_unique.toLocaleString();
+  document.getElementById('s-cache-hits').textContent   = d.cache_hits_all.toLocaleString();
+  document.getElementById('s-hit-rate').textContent     = `${d.hit_rate}% del total`;
+  document.getElementById('s-rule-hits').textContent    = d.rule_hits_all.toLocaleString();
+  document.getElementById('s-stale30').textContent      = d.stale_30d.toLocaleString();
+
+  // Top 10
+  const tbody = document.getElementById('top10-body');
+  tbody.innerHTML = d.top10.map((r, i) => `
+    <tr>
+      <td class="text-secondary">${i + 1}</td>
+      <td class="truncate" title="${esc(r.original)}">${esc(r.original)}</td>
+      <td class="truncate" title="${esc(r.translated)}">${esc(r.translated)}</td>
+      <td class="text-end"><span class="badge bg-secondary">${r.use_count}</span></td>
+    </tr>`).join('');
+
+  // Tarjeta caracteres DeepL
+  {
+    const pct = d.chars_month / DEEPL_LIMIT * 100;
+    const pctRound = Math.min(pct, 100).toFixed(1);
+    document.getElementById('s-chars-month').textContent = d.chars_month.toLocaleString();
+    document.getElementById('s-chars-pct').textContent   = pctRound + '%';
+    document.getElementById('s-chars-today').textContent = d.chars_today.toLocaleString();
+    document.getElementById('s-chars-total').textContent = d.chars_total.toLocaleString() + ' chars';
+    const bar = document.getElementById('s-chars-bar');
+    bar.style.width = pctRound + '%';
+    bar.className = 'progress-bar ' + (pct >= 90 ? 'bg-danger' : pct >= 70 ? 'bg-warning' : 'bg-success');
+  }
+
+  // Gráfica caracteres por día
+  {
+    const allDays = [];
+    for (let i = 29; i >= 0; i--) {
+      const dt = new Date(); dt.setDate(dt.getDate() - i);
+      allDays.push(dt.toISOString().slice(0, 10));
+    }
+    const cmap   = Object.fromEntries((d.chars_daily || []).map(x => [x.day, x.n]));
+    const labels = allDays.map(x => x.slice(5));
+    const vals   = allDays.map(x => cmap[x] || 0);
+    if (chartChars) chartChars.destroy();
+    chartChars = new Chart(document.getElementById('chart-chars'), {
+      type: 'bar',
+      data: {labels, datasets: [{label: 'Caracteres', data: vals, backgroundColor: '#8957e5', borderRadius: 3}]},
+      options: {
+        plugins: {legend: {display: false}},
+        scales: {
+          x: {grid: {color:'#21262d'}, ticks: {color:'#8b949e', font:{size:10}}},
+          y: {grid: {color:'#21262d'}, ticks: {color:'#8b949e', font:{size:10}}, beginAtZero: true},
+        }
+      }
+    });
+  }
+
+  // Chart diario — barras apiladas por categoría
+  {
+    // Construimos todos los días de los últimos 30 para no dejar huecos
+    const allDays = [];
+    for (let i = 29; i >= 0; i--) {
+      const dt = new Date(); dt.setDate(dt.getDate() - i);
+      allDays.push(dt.toISOString().slice(0, 10));
+    }
+    const toMap = arr => Object.fromEntries(arr.map(x => [x.day, x.n]));
+    const apiMap   = toMap(d.daily_api   || []);
+    const rulesMap = toMap(d.daily_rules || []);
+    const cacheMap = toMap(d.daily_cache || []);
+
+    const labels    = allDays.map(x => x.slice(5));
+    const apiVals   = allDays.map(x => apiMap[x]   || 0);
+    const rulesVals = allDays.map(x => rulesMap[x] || 0);
+    const cacheVals = allDays.map(x => cacheMap[x] || 0);
+
+    if (chartDaily) chartDaily.destroy();
+    chartDaily = new Chart(document.getElementById('chart-daily'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {label: 'API (DeepL/Google/Azure)', data: apiVals,   backgroundColor: '#1f6feb', stack: 's'},
+          {label: 'Reglas (local)',            data: rulesVals, backgroundColor: '#3fb950', stack: 's'},
+          {label: 'Caché (entradas reusadas)', data: cacheVals, backgroundColor: '#f0883e', stack: 's'},
+        ]
+      },
+      options: {
+        plugins: {
+          legend: {
+            display: true,
+            labels: {color: '#8b949e', font: {size: 11}, boxWidth: 12, padding: 12}
+          }
+        },
+        scales: {
+          x: {stacked: true, grid: {color:'#21262d'}, ticks: {color:'#8b949e', font:{size:10}}},
+          y: {stacked: true, grid: {color:'#21262d'}, ticks: {color:'#8b949e', font:{size:10}}, beginAtZero: true},
+        }
+      }
+    });
+  }
+
+  // Chart motores
+  const engines = d.by_engine.map(x => x.engine);
+  const counts  = d.by_engine.map(x => x.count);
+  const colors  = ['#1f6feb','#f0883e','#3fb950','#8957e5','#56d364','#58a6ff'];
+  if (chartEngine) chartEngine.destroy();
+  chartEngine = new Chart(document.getElementById('chart-engine'), {
+    type: 'doughnut',
+    data: {labels: engines, datasets: [{data: counts, backgroundColor: colors, borderWidth: 0}]},
+    options: {
+      plugins: {legend: {labels: {color:'#8b949e', font:{size:11}}}},
+    }
+  });
+}
+
+// ─── TRADUCCIONES ─────────────────────────────────────────────────────────────
+function getFilters() {
+  return {
+    search:   document.getElementById('f-search').value.trim(),
+    engine:   document.getElementById('f-engine').value,
+    min_uses: document.getElementById('f-minuses').value.trim(),
+    max_days: document.getElementById('f-maxdays').value.trim(),
+    edited:   document.getElementById('f-edited').checked ? '1' : '',
+    sort:     document.getElementById('f-sort').value,
+    order:    document.getElementById('f-order').value,
+    per_page: document.getElementById('f-perpage').value,
+  };
+}
+
+function clearFilters() {
+  document.getElementById('f-search').value  = '';
+  document.getElementById('f-engine').value  = '';
+  document.getElementById('f-minuses').value = '';
+  document.getElementById('f-maxdays').value = '';
+  document.getElementById('f-edited').checked = false;
+  loadTranslations(1);
+}
+
+async function loadTranslations(page = 1) {
+  currentPage = page;
+  const f   = getFilters();
+  const qs  = new URLSearchParams({page, ...f}).toString();
+  const data = await api(`/api/translations?${qs}`);
+
+  totalPages = Math.ceil(data.total / f.per_page) || 1;
+  document.getElementById('t-info').textContent =
+    `${data.total.toLocaleString()} entradas · página ${data.page} de ${totalPages}`;
+
+  const tbody = document.getElementById('t-body');
+  if (!data.rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-secondary py-4">Sin resultados</td></tr>';
+  } else {
+    tbody.innerHTML = data.rows.map(r => `
+      <tr>
+        <td class="truncate" title="${esc(r.original)}" style="max-width:220px;">${esc(r.original)}</td>
+        <td class="truncate" title="${esc(r.translated)}" style="max-width:220px;">
+          ${r.is_edited ? '<i class="bi bi-lock-fill edited-lock me-1" title="Editada manualmente"></i>' : ''}${esc(r.translated)}
+        </td>
+        <td><span class="badge badge-engine ${engineColor(r.engine)}">${esc(r.engine)}</span></td>
+        <td><span class="text-secondary">${r.use_count}</span></td>
+        <td><span class="text-secondary">${r.last_used || '—'}</span></td>
+        <td class="text-end">
+          <button class="btn btn-action btn-outline-secondary me-1" title="Editar" onclick="openEdit(${r.rowid}, ${jsStr(r.original)}, ${jsStr(r.translated)})">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button class="btn btn-action btn-outline-danger" title="Eliminar" onclick="deleteRow(${r.rowid}, ${r.is_edited})">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </td>
+      </tr>`).join('');
+  }
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const cont = document.getElementById('t-pagination');
+  const pages = totalPages;
+  if (pages <= 1) { cont.innerHTML = ''; return; }
+
+  let html = '';
+  html += `<button class="btn btn-sm btn-outline-secondary" ${currentPage<=1?'disabled':''} onclick="loadTranslations(${currentPage-1})">‹</button>`;
+  const start = Math.max(1, currentPage - 2);
+  const end   = Math.min(pages, currentPage + 2);
+  if (start > 1) html += `<button class="btn btn-sm btn-outline-secondary" onclick="loadTranslations(1)">1</button><span class="text-secondary px-1">…</span>`;
+  for (let p = start; p <= end; p++) {
+    html += `<button class="btn btn-sm ${p===currentPage?'btn-primary':'btn-outline-secondary'}" onclick="loadTranslations(${p})">${p}</button>`;
+  }
+  if (end < pages) html += `<span class="text-secondary px-1">…</span><button class="btn btn-sm btn-outline-secondary" onclick="loadTranslations(${pages})">${pages}</button>`;
+  html += `<button class="btn btn-sm btn-outline-secondary" ${currentPage>=pages?'disabled':''} onclick="loadTranslations(${currentPage+1})">›</button>`;
+  cont.innerHTML = html;
+}
+
+function engineColor(e) {
+  if (e.includes('deepl'))  return 'bg-primary';
+  if (e.includes('google')) return 'bg-warning text-dark';
+  if (e.includes('azure'))  return 'bg-info text-dark';
+  if (e.includes('rule'))   return 'bg-success';
+  return 'bg-secondary';
+}
+
+// Editar traducción
+function openEdit(rowid, original, translated) {
+  editRowId = rowid;
+  document.getElementById('edit-original').textContent   = original;
+  document.getElementById('edit-translated').value       = translated;
+  new bootstrap.Modal(document.getElementById('modal-edit-tr')).show();
+}
+async function saveEdit() {
+  const translated = document.getElementById('edit-translated').value.trim();
+  if (!translated) return;
+  try {
+    await api(`/api/translations/${editRowId}`, {
+      method: 'PUT', body: JSON.stringify({translated})
+    });
+    bootstrap.Modal.getInstance(document.getElementById('modal-edit-tr')).hide();
+    toast('Traducción actualizada y marcada como editada');
+    loadTranslations(currentPage);
+  } catch(e) { toast(e.error || 'Error', 'danger'); }
+}
+
+// Eliminar fila
+async function deleteRow(rowid, isEdited) {
+  if (isEdited) {
+    if (!confirm('Esta entrada fue editada manualmente. ¿Eliminar igualmente?')) return;
+    await api(`/api/translations/${rowid}?force=1`, {method:'DELETE'});
+  } else {
+    if (!confirm('¿Eliminar esta traducción?')) return;
+    await api(`/api/translations/${rowid}`, {method:'DELETE'});
+  }
+  toast('Entrada eliminada', 'secondary');
+  loadTranslations(currentPage);
+}
+
+// Borrado masivo
+async function openBulkDeleteModal() {
+  const f = getFilters();
+  const body = {search: f.search, engine: f.engine, min_uses: f.min_uses, max_days: f.max_days};
+  const d = await api('/api/translations/preview-delete', {method:'POST', body: JSON.stringify(body)});
+  document.getElementById('bulk-count').textContent = d.count;
+  new bootstrap.Modal(document.getElementById('modal-bulk-del')).show();
+}
+async function confirmBulkDelete() {
+  const f = getFilters();
+  const body = {search: f.search, engine: f.engine, min_uses: f.min_uses, max_days: f.max_days};
+  const d = await api('/api/translations/bulk-delete', {method:'POST', body: JSON.stringify(body)});
+  bootstrap.Modal.getInstance(document.getElementById('modal-bulk-del')).hide();
+  toast(`${d.deleted} entradas eliminadas`);
+  loadTranslations(1);
+}
+
+// Export CSV
+function exportCSV() {
+  const f  = getFilters();
+  const qs = new URLSearchParams({search: f.search, engine: f.engine}).toString();
+  window.location = `/api/translations/export?${qs}`;
+}
+
+// ─── REGLAS ───────────────────────────────────────────────────────────────────
+async function loadRules() {
+  const rules = await api('/api/rules');
+  const tbody = document.getElementById('rules-body');
+  if (!rules.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary py-3">Sin reglas definidas</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rules.map((r, i) => `
+    <tr class="rule-row">
+      <td>${i}</td>
+      <td><code class="code-pattern">${esc(r.pattern)}</code></td>
+      <td><span class="badge handler-badge ${handlerColor(r.handler)}">${esc(r.handler)}</span></td>
+      <td class="text-secondary">${esc(r.description || '')}</td>
+      <td class="text-end">
+        <button class="btn btn-action btn-outline-danger" onclick="deleteRule(${i})" title="Eliminar">
+          <i class="bi bi-trash3"></i>
+        </button>
+      </td>
+    </tr>`).join('');
+}
+
+function handlerColor(h) {
+  if (h === 'ignore_line')   return 'bg-danger';
+  if (h === 'job_completed') return 'bg-success';
+  return 'bg-secondary';
+}
+
+function onHandlerChange() {
+  const val = document.getElementById('rule-handler').value;
+  document.getElementById('rule-handler-custom-wrap').style.display = val === 'custom' ? '' : 'none';
+}
+
+async function saveRule() {
+  const pattern     = document.getElementById('rule-pattern').value.trim();
+  const handlerSel  = document.getElementById('rule-handler').value;
+  const handler     = handlerSel === 'custom'
+    ? document.getElementById('rule-handler-custom').value.trim()
+    : handlerSel;
+  const description = document.getElementById('rule-description').value.trim();
+  const errEl       = document.getElementById('rule-save-error');
+  errEl.textContent = '';
+
+  if (!pattern) { errEl.textContent = 'El patrón es obligatorio.'; return; }
+  if (!handler) { errEl.textContent = 'El handler es obligatorio.'; return; }
+
+  try {
+    await api('/api/rules', {method:'POST', body: JSON.stringify({pattern, handler, description})});
+    bootstrap.Modal.getInstance(document.getElementById('modal-add-rule')).hide();
+    document.getElementById('rule-pattern').value     = '';
+    document.getElementById('rule-description').value = '';
+    document.getElementById('rule-handler').value     = 'ignore_line';
+    onHandlerChange();
+    toast('Regla añadida · Reinicia el servidor para que surta efecto');
+    loadRules();
+  } catch(e) { errEl.textContent = e.error || 'Error al guardar'; }
+}
+
+async function deleteRule(idx) {
+  if (!confirm('¿Eliminar esta regla?')) return;
+  await api(`/api/rules/${idx}`, {method:'DELETE'});
+  toast('Regla eliminada · Reinicia el servidor para aplicar el cambio', 'secondary');
+  loadRules();
+}
+
+async function testRule() {
+  const text = document.getElementById('test-input').value.trim();
+  const el   = document.getElementById('test-result');
+  if (!text) return;
+  const d = await api('/api/rules/test', {method:'POST', body: JSON.stringify({text})});
+  if (d.matched) {
+    el.innerHTML = `
+      <div class="alert alert-success py-2 mb-0" style="font-size:.85rem;">
+        <strong><i class="bi bi-check-circle me-1"></i>Coincide con la regla #${d.index}</strong>
+        — handler: <code>${esc(d.rule.handler)}</code><br>
+        <code style="font-size:.8rem;">${esc(d.rule.pattern)}</code>
+        ${d.groups.length ? `<br><span class="text-secondary">Grupos capturados: ${d.groups.map(g=>`<code>${esc(g)}</code>`).join(', ')}</span>` : ''}
+        ${d.rule.handler === 'ignore_line' ? '<br><span class="text-warning">⚠ Esta línea sería ignorada (no traducida).</span>' : ''}
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="alert alert-secondary py-2 mb-0" style="font-size:.85rem;">
+        <i class="bi bi-x-circle me-1"></i> Ninguna regla coincide — pasaría a caché/API.
+      </div>`;
+  }
+}
+
+document.getElementById('test-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') testRule();
+});
+
+// ─── GLOSARIO ─────────────────────────────────────────────────────────────────
+async function loadGlosario() {
+  const entries = await api('/api/glossary');
+  const tbody = document.getElementById('gloss-body');
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center text-secondary py-3">Glosario vacío</td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map(e => `
+    <tr>
+      <td class="font-monospace" style="font-size:.88rem;">${esc(e.en)}</td>
+      <td class="font-monospace" style="font-size:.88rem;">${esc(e.es)}</td>
+      <td class="text-end">
+        <button class="btn btn-action btn-outline-secondary me-1" onclick="openGlossEdit(${jsStr(e.en)}, ${jsStr(e.es)})" title="Editar">
+          <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-action btn-outline-danger" onclick="deleteGloss(${jsStr(e.en)})" title="Eliminar">
+          <i class="bi bi-trash3"></i>
+        </button>
+      </td>
+    </tr>`).join('');
+}
+
+async function saveGloss() {
+  const en = document.getElementById('gloss-en').value.trim();
+  const es = document.getElementById('gloss-es').value.trim();
+  const errEl = document.getElementById('gloss-error');
+  errEl.textContent = '';
+  try {
+    await api('/api/glossary', {method:'POST', body: JSON.stringify({en, es})});
+    bootstrap.Modal.getInstance(document.getElementById('modal-add-gloss')).hide();
+    document.getElementById('gloss-en').value = '';
+    document.getElementById('gloss-es').value = '';
+    toast('Término añadido · Reinicia el servidor para sincronizar con DeepL');
+    loadGlosario();
+  } catch(e) { errEl.textContent = e.error || 'Error'; }
+}
+
+async function deleteGloss(term) {
+  if (!confirm(`¿Eliminar "${term}" del glosario?`)) return;
+  await api(`/api/glossary/${encodeURIComponent(term)}`, {method:'DELETE'});
+  toast('Término eliminado · Reinicia el servidor para sincronizar con DeepL', 'secondary');
+  loadGlosario();
+}
+
+function openGlossEdit(en, es) {
+  glossEditTerm = en;
+  document.getElementById('gloss-edit-en').textContent = en;
+  document.getElementById('gloss-edit-es').value = es;
+  new bootstrap.Modal(document.getElementById('modal-edit-gloss')).show();
+}
+
+async function saveGlossEdit() {
+  const es = document.getElementById('gloss-edit-es').value.trim();
+  if (!es) return;
+  await api(`/api/glossary/${encodeURIComponent(glossEditTerm)}`, {
+    method:'PUT', body: JSON.stringify({es})
+  });
+  bootstrap.Modal.getInstance(document.getElementById('modal-edit-gloss')).hide();
+  toast('Término actualizado · Reinicia el servidor para sincronizar con DeepL');
+  loadGlosario();
+}
+
+// ─── Utils ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function jsStr(s) {
+  return JSON.stringify(String(s));
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+loadDashboard();
+</script>
+</body>
+</html>

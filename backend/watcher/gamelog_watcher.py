@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+import threading
 import time
 import requests
 import yaml
@@ -62,6 +63,7 @@ def _strip_dfhack(text: str) -> str:
 _LOG_DIR = os.path.join(_ROOT, "logs")
 _MISMATCH_PATH = os.path.join(_LOG_DIR, "markup_mismatch.jsonl")
 _SEPARATOR = "-" * 60
+_LOG_LOCK = threading.Lock()
 
 
 def _log_mismatch(original: str, translated: str, orig_count: int, trans_count: int) -> None:
@@ -73,8 +75,9 @@ def _log_mismatch(original: str, translated: str, orig_count: int, trans_count: 
         "original": original,
         "translated": translated,
     }
-    with open(_MISMATCH_PATH, "a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    with _LOG_LOCK:
+        with open(_MISMATCH_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 def _log_translation(original: str, translated: str) -> None:
@@ -85,10 +88,23 @@ def _log_translation(original: str, translated: str) -> None:
     ts = datetime.now().strftime("%H:%M:%S")
     en_clean = _strip_dfhack(original)
     es_clean = _strip_dfhack(translated)
-    with open(log_path, "a", encoding="utf-8") as f:
-        f.write(f"[{ts}] EN: {en_clean}\n")
-        f.write(f"[{ts}] ES: {es_clean}\n")
-        f.write(_SEPARATOR + "\n")
+    with _LOG_LOCK:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"[{ts}] EN: {en_clean}\n")
+            f.write(f"[{ts}] ES: {es_clean}\n")
+            f.write(_SEPARATOR + "\n")
+
+
+def _log_user_note(note: str) -> None:
+    """Añade una nota de usuario al log diario de auditoría."""
+    os.makedirs(_LOG_DIR, exist_ok=True)
+    today = datetime.now().strftime("%Y-%m-%d")
+    log_path = os.path.join(_LOG_DIR, f"translations_{today}.log")
+    ts = datetime.now().strftime("%H:%M:%S")
+    with _LOG_LOCK:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"[{ts}] *** NOTA: {note} ***\n")
+            f.write(_SEPARATOR + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -154,9 +170,11 @@ def watch(file_path: str, poll_interval: float, service_url: str, visualizer) ->
                         _log_mismatch(line, translated, orig_count, trans_count)
 
                     _log_translation(line, translated)
-                    visualizer.display(translated)
+                    with _LOG_LOCK:
+                        visualizer.display(translated)
                 else:
-                    visualizer.display("(sin traducción disponible)")
+                    with _LOG_LOCK:
+                        visualizer.display("(sin traducción disponible)")
             else:
                 time.sleep(poll_interval)
 
@@ -210,7 +228,6 @@ if __name__ == "__main__":
             print("\n[Watcher] Detenido por el usuario.", flush=True)
 
     else:  # console (por defecto)
-        import threading
         from visualizer.console import ConsoleVisualizer
 
         beep = os.environ.get("BEEP_ENABLED", "true").lower() != "false"
@@ -223,8 +240,24 @@ if __name__ == "__main__":
                 daemon=True,
             ).start()
 
+        print("[Watcher] -------------------------------------------------------------")
+        print("[Watcher] MODO INTERACTIVO ACTIVO.")
+        print("[Watcher] - Pulsa ENTER solo para insertar una línea de separación.")
+        print("[Watcher] - Escribe cualquier texto y ENTER para insertar una nota.")
+        print("[Watcher] -------------------------------------------------------------", flush=True)
+
         try:
             while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
+                note = input("> ").strip()
+                if not note:
+                    # Separador visual
+                    with _LOG_LOCK:
+                        visualizer.display("[C:7:0:1]--------------------------------------------------")
+                        _log_user_note("--- SEPARADOR ---")
+                else:
+                    # Nota de usuario
+                    with _LOG_LOCK:
+                        visualizer.display(f"\n[C:6:0:1]*** NOTA: {note} ***\n")
+                        _log_user_note(note)
+        except (KeyboardInterrupt, EOFError):
             print("\n[Watcher] Detenido por el usuario.", flush=True)

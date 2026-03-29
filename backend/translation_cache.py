@@ -16,7 +16,7 @@ import threading
 from datetime import datetime, timezone
 
 
-_CREATE_SQL = """
+_CREATE_TRANSLATIONS_SQL = """
 CREATE TABLE IF NOT EXISTS translations (
     original   TEXT    NOT NULL UNIQUE,
     translated TEXT    NOT NULL,
@@ -25,6 +25,15 @@ CREATE TABLE IF NOT EXISTS translations (
     created_at TEXT    NOT NULL,
     last_used  TEXT    NOT NULL,
     is_edited  INTEGER NOT NULL DEFAULT 0
+)
+"""
+
+_CREATE_STATS_SQL = """
+CREATE TABLE IF NOT EXISTS daily_stats (
+    date   TEXT NOT NULL,
+    source TEXT NOT NULL,
+    count  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (date, source)
 )
 """
 
@@ -40,7 +49,8 @@ class TranslationCache:
         self.db_path = db_path
         self._lock = threading.Lock()
         with self._connect() as conn:
-            conn.execute(_CREATE_SQL)
+            conn.execute(_CREATE_TRANSLATIONS_SQL)
+            conn.execute(_CREATE_STATS_SQL)
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self.db_path, check_same_thread=False)
@@ -83,4 +93,19 @@ class TranslationCache:
                     last_used  = excluded.last_used
                 """,
                 (original, translated, engine, now, now),
+            )
+
+    def track(self, source: str) -> None:
+        """
+        Incrementa el contador diario para 'api', 'cache' o 'rule'.
+        Llamar justo antes de devolver la respuesta en app.py.
+        """
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO daily_stats (date, source, count) VALUES (?, ?, 1)
+                ON CONFLICT(date, source) DO UPDATE SET count = count + 1
+                """,
+                (today, source),
             )

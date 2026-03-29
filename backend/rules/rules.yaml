@@ -21,3 +21,12 @@
 
 - pattern: "^---+$"
   handler: ignore_line
+
+- pattern: "^(.+?) stands up\\.$"
+  handler: stands_up
+
+- pattern: "^(.+?) pets (.+?)\\.$"
+  handler: pets_action
+
+- pattern: "^(.+?): I feel so good!$"
+  handler: feel_so_good

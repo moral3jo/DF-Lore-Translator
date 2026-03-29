@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>NombresEspanol - Traductor DF</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; font-size: 14px; }
+
+  /* HEADER */
+  #sticky-top {
+    position: sticky; top: 0; z-index: 100;
+  }
+  #header {
+    background: #16213e; border-bottom: 2px solid #0f3460;
+    padding: 12px 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  #header h1 { font-size: 18px; color: #e94560; letter-spacing: 1px; }
+  #source-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  #source-path { flex: 1; min-width: 300px; background: #0f3460; border: 1px solid #e94560; color: #e0e0e0; padding: 6px 10px; border-radius: 4px; font-size: 13px; }
+  .btn { padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity .2s; white-space: nowrap; }
+  .btn:hover { opacity: .85; }
+  .btn-primary  { background: #e94560; color: #fff; }
+  .btn-success  { background: #0f9960; color: #fff; }
+  .btn-warning  { background: #d9822b; color: #fff; }
+  .btn-secondary{ background: #0f3460; color: #e0e0e0; border: 1px solid #e94560; }
+  .btn-info     { background: #1e5f8c; color: #e0e0e0; border: 1px solid #3a8fc0; }
+  .btn-ghost    { background: transparent; color: #888; border: 1px solid #444; }
+  .btn-ghost:hover { color: #e0e0e0; border-color: #888; }
+
+  /* STATS */
+  #stats-bar { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .stat-pill { background: #0f3460; border-radius: 12px; padding: 3px 12px; font-size: 12px; color: #a0c4ff; }
+  .stat-pill span { color: #e94560; font-weight: 700; }
+  #progress-bar { flex: 1; height: 6px; background: #0f3460; border-radius: 3px; min-width: 120px; }
+  #progress-fill { height: 100%; background: #0f9960; border-radius: 3px; transition: width .4s; }
+
+  /* FILTER BAR */
+  #filter-bar {
+    padding: 10px 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    background: #16213e; border-bottom: 1px solid #0f3460; border-top: 1px solid #0f3460;
+  }
+  #search-box { background: #0f3460; border: 1px solid #555; color: #e0e0e0; padding: 6px 10px; border-radius: 4px; width: 200px; }
+  .filter-btn { padding: 5px 12px; border-radius: 4px; border: 1px solid #555; background: #1a1a2e; color: #aaa; cursor: pointer; font-size: 12px; }
+  .filter-btn.active { border-color: #e94560; color: #e94560; background: #2a1a2e; }
+  .filter-btn[data-filter="has_accents"], .filter-btn[data-filter="has_spaces"] { border-color: #d9822b44; color: #d9822b; }
+  .filter-btn[data-filter="has_accents"].active, .filter-btn[data-filter="has_spaces"].active { border-color: #d9822b; background: #2a1a00; }
+  #page-info { font-size: 12px; color: #888; }
+  .page-btn { padding: 4px 10px; }
+  #filter-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  #btn-copy-selected { display: none; }
+  #select-count { font-size: 12px; color: #d9822b; display: none; }
+
+  /* WORD LIST */
+  #word-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  .word-card { background: #16213e; border: 1px solid #0f3460; border-radius: 6px; overflow: hidden; }
+  .word-card.all-done { border-color: #0f9960; }
+  .word-card.selected { border-color: #d9822b !important; box-shadow: 0 0 0 2px #d9822b44; }
+
+  .word-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; background: #0f3460;
+    cursor: pointer; user-select: none;
+  }
+  .word-key { font-weight: 700; font-size: 15px; color: #a0c4ff; letter-spacing: .5px; }
+  .word-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+  .badge-done    { background: #0f9960; color: #fff; }
+  .badge-partial { background: #d9822b; color: #fff; }
+  .badge-none    { background: #444; color: #aaa; }
+
+  /* Header action buttons */
+  .header-actions { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .hbtn {
+    padding: 2px 8px; border-radius: 3px; font-size: 12px; cursor: pointer; border: 1px solid transparent;
+    background: transparent; color: #888; transition: all .15s;
+  }
+  .hbtn:hover { background: #1a1a2e; color: #e0e0e0; border-color: #555; }
+  .hbtn-copy:hover  { color: #a0c4ff; border-color: #a0c4ff; }
+  .hbtn-paste:hover { color: #a7e3c8; border-color: #a7e3c8; }
+  .hbtn-check { font-size: 16px; }
+  .arrow-icon { color: #555; font-size: 11px; }
+
+  /* Checkbox */
+  .word-checkbox { display: none; width: 16px; height: 16px; cursor: pointer; accent-color: #d9822b; flex-shrink: 0; }
+  body.select-mode .word-checkbox { display: block; }
+
+  /* Paste inline area */
+  .paste-inline {
+    display: none; padding: 8px 12px; background: #0d1b2e;
+    border-top: 1px solid #1e5f8c; flex-direction: column; gap: 6px;
+  }
+  .paste-inline.open { display: flex; }
+  .paste-inline textarea {
+    width: 100%; height: 80px; background: #0a1520; border: 1px solid #1e5f8c;
+    color: #e0e0e0; padding: 6px 8px; border-radius: 4px; font-size: 12px;
+    font-family: monospace; resize: vertical;
+  }
+  .paste-inline textarea:focus { outline: none; border-color: #3a8fc0; }
+  .paste-inline-row { display: flex; gap: 6px; align-items: center; }
+  .paste-inline-hint { font-size: 11px; color: #555; flex: 1; }
+
+  /* Word body */
+  .word-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  /* FORM ROW */
+  .form-row { display: flex; gap: 8px; align-items: flex-start; }
+  .form-label { width: 58px; flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 4px 6px; border-radius: 3px; text-align: center; align-self: flex-start; margin-top: 2px; }
+  .label-NOUN   { background: #1e4d8c; color: #7ec8e3; }
+  .label-VERB   { background: #4d1e8c; color: #c8a7e3; }
+  .label-ADJ    { background: #1e8c4d; color: #a7e3c8; }
+  .label-PREFIX { background: #8c4d1e; color: #e3c8a7; }
+
+  .form-parts { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .part-row { display: flex; align-items: center; gap: 6px; }
+  .part-name { width: 90px; flex-shrink: 0; font-size: 11px; color: #888; }
+  .part-orig { flex: 1; font-size: 12px; color: #aaa; padding: 3px 8px; background: #111; border-radius: 3px; font-style: italic; }
+  .arrow { color: #555; font-size: 14px; flex-shrink: 0; }
+  .part-input { flex: 1; background: #0f2040; border: 1px solid #444; color: #e0e0e0; padding: 3px 8px; border-radius: 3px; font-size: 13px; }
+  .part-input:focus { outline: none; border-color: #e94560; }
+  .part-input.filled { border-color: #0f9960; background: #0f2520; }
+  .form-clear { padding: 2px 8px; font-size: 11px; border-radius: 3px; }
+
+  /* MODAL */
+  #modal-overlay {
+    display: none; position: fixed; inset: 0; background: #000a; z-index: 500;
+    align-items: center; justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+  #modal {
+    background: #16213e; border: 1px solid #0f3460; border-radius: 8px;
+    width: 640px; max-width: 95vw; max-height: 85vh;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #modal-header { padding: 12px 16px; background: #0f3460; display: flex; align-items: center; gap: 10px; }
+  #modal-title { font-weight: 700; color: #a0c4ff; flex: 1; }
+  #modal-body { padding: 14px 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  #modal-body textarea {
+    width: 100%; height: 300px; background: #0a1520; border: 1px solid #1e5f8c;
+    color: #e0e0e0; padding: 8px; border-radius: 4px; font-size: 12px;
+    font-family: monospace; resize: vertical;
+  }
+  #modal-footer { padding: 10px 16px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid #0f3460; }
+  #modal-hint { font-size: 12px; color: #888; line-height: 1.6; }
+  #modal-result { font-size: 12px; color: #0f9960; display: none; }
+
+  /* LOADING / EMPTY */
+  #loading { text-align: center; padding: 40px; color: #888; font-size: 16px; display: none; }
+  #empty-msg { text-align: center; padding: 40px; color: #555; display: none; }
+  #toast { position: fixed; bottom: 20px; right: 20px; background: #0f9960; color: #fff; padding: 10px 20px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
+</style>
+</head>
+<body>
+
+<!-- STICKY TOP: header + filter bar always visible on scroll -->
+<div id="sticky-top">
+<div id="header">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <h1>NombresEspanol</h1>
+    <div id="stats-bar">
+      <div class="stat-pill">Palabras: <span id="s-words">0</span></div>
+      <div class="stat-pill">Formas: <span id="s-forms">0</span></div>
+      <div class="stat-pill">Traducidas: <span id="s-translated">0</span> / <span id="s-total-forms">0</span></div>
+      <div id="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
+      <span id="s-pct" style="font-size:12px;color:#aaa">0%</span>
+    </div>
+  </div>
+  <div id="source-row">
+    <input id="source-path" type="text" placeholder="Ruta al language_words.txt del juego...">
+    <button class="btn btn-primary" onclick="importWords()">Importar datos</button>
+    <button class="btn btn-success" onclick="generateFile()">Generar fichero</button>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#aaa;cursor:pointer;white-space:nowrap" title="Convierte á→a, é→e, ñ→n... al generar">
+      <input type="checkbox" id="chk-strip-accents" style="accent-color:#d9822b">
+      Sin tildes
+    </label>
+  </div>
+</div><!-- /header -->
+<!-- FILTER BAR -->
+<div id="filter-bar">
+  <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">Todas</button>
+  <button class="filter-btn" data-filter="untranslated" onclick="setFilter('untranslated')">Sin traducir</button>
+  <button class="filter-btn" data-filter="translated" onclick="setFilter('translated')">Traducidas</button>
+  <button class="filter-btn" data-filter="has_accents" onclick="setFilter('has_accents')" title="Traducciones con tildes o caracteres no ASCII">⚠ Tildes</button>
+  <button class="filter-btn" data-filter="has_spaces" onclick="setFilter('has_spaces')" title="Traducciones que contienen espacios">⚠ Espacios</button>
+  <input id="search-box" type="text" placeholder="Buscar palabra..." oninput="onSearch()">
+  <div id="filter-right">
+    <span id="select-count"></span>
+    <button id="btn-copy-selected" class="btn btn-warning" onclick="copySelected()">📋 Copiar seleccionadas</button>
+    <button class="btn btn-info" onclick="toggleSelectMode()" id="btn-select">☑ Seleccionar</button>
+    <button class="btn btn-info" onclick="openMultiPasteModal()">📥 Pegar múltiples</button>
+    <input id="auto-copy-n" type="number" value="10" min="1" max="500" title="Número de palabras a copiar"
+      style="width:52px;background:#0f3460;border:1px solid #555;color:#e0e0e0;padding:5px 6px;border-radius:4px;font-size:13px;text-align:center">
+    <button class="btn btn-info" onclick="autoCopy()" title="Copia las primeras N palabras sin traducir">📋 CopiarAuto</button>
+    <span id="page-info"></span>
+    <button class="btn btn-secondary page-btn" onclick="prevPage()">&#8592;</button>
+    <button class="btn btn-secondary page-btn" onclick="nextPage()">&#8594;</button>
+  </div>
+</div>
+
+</div><!-- /sticky-top -->
+
+<div id="loading">Cargando...</div>
+<div id="empty-msg">No hay palabras. Pulsa <strong>Importar datos</strong> para empezar.</div>
+<div id="word-list"></div>
+
+<!-- MULTI-PASTE MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div id="modal-header">
+      <span id="modal-title">Pegar traducciones múltiples</span>
+      <button class="btn btn-ghost" style="padding:2px 8px" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-body">
+      <div id="modal-hint">
+        Pega el texto traducido con el formato generado por el botón copiar.<br>
+        Cada palabra empieza con <code style="color:#a0c4ff">WORD: NOMBRE</code> y cada forma en una línea:<br>
+        <code style="color:#a7e3c8">NOUN | singular: valor | plural: valor</code><br>
+        Separa varias palabras con una línea en blanco.
+      </div>
+      <textarea id="modal-textarea" placeholder="Pega aquí el texto traducido..."></textarea>
+      <div id="modal-result"></div>
+    </div>
+    <div id="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-success" onclick="applyMultiPaste()">Aplicar traducciones</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Constants & state
+// ---------------------------------------------------------------------------
+const FORM_LABELS = {
+  NOUN:   ['singular','plural'],
+  VERB:   ['presente','3a_persona','pasado','participio','gerundio'],
+  ADJ:    ['adjetivo'],
+  PREFIX: ['prefijo'],
+};
+
+let state = {
+  filter: 'all', search: '', page: 1, per_page: 50, total: 0, pages: 1,
+};
+let searchTimer = null;
+let selectMode = false;
+let selectedWords = new Set(); // word_key strings
+// Cache of word data for copy operations (word_key -> word object)
+let wordCache = {};
+// Maps first-form-id -> word_key so paste can resolve even if translator changed the word text
+let wordIdIndex = {};
+
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+async function boot() {
+  const cfg = await fetch('/api/settings').then(r=>r.json());
+  document.getElementById('source-path').value = cfg.source_path || '';
+  await refreshStats();
+  await loadWords();
+}
+
+// ---------------------------------------------------------------------------
+// Stats
+// ---------------------------------------------------------------------------
+async function refreshStats() {
+  const s = await fetch('/api/stats').then(r=>r.json());
+  document.getElementById('s-words').textContent = s.total_words;
+  document.getElementById('s-forms').textContent = s.total_forms;
+  document.getElementById('s-translated').textContent = s.translated_forms;
+  document.getElementById('s-total-forms').textContent = s.total_forms;
+  const pct = s.total_forms ? Math.round(s.translated_forms / s.total_forms * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('s-pct').textContent = pct + '%';
+}
+
+// ---------------------------------------------------------------------------
+// Import / Generate
+// ---------------------------------------------------------------------------
+async function importWords() {
+  const path = document.getElementById('source-path').value.trim();
+  if (!path) { toast('Introduce la ruta al fichero', true); return; }
+  await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({source_path: path}) });
+  showLoading(true);
+  const res = await fetch('/api/import', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({filepath: path})
+  }).then(r=>r.json());
+  showLoading(false);
+  if (res.ok) {
+    toast(`Importadas ${res.imported} formas nuevas. Total palabras: ${res.total_words}`);
+    await refreshStats(); state.page = 1; await loadWords();
+  } else { toast('Error: ' + res.error, true); }
+}
+
+async function generateFile() {
+  const path = document.getElementById('source-path').value.trim();
+  const stripAccents = document.getElementById('chk-strip-accents').checked;
+  const res = await fetch('/api/generate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({source_path: path, strip_accents: stripAccents})
+  }).then(r=>r.json());
+  if (res.ok) toast('Fichero generado' + (stripAccents ? ' (sin tildes)' : '') + ': ' + res.path);
+  else toast('Error al generar: ' + res.error, true);
+}
+
+// ---------------------------------------------------------------------------
+// Load & Render
+// ---------------------------------------------------------------------------
+async function loadWords() {
+  showLoading(true);
+  const params = new URLSearchParams({
+    filter: state.filter, search: state.search,
+    page: state.page, per_page: state.per_page,
+  });
+  const data = await fetch('/api/words?' + params).then(r=>r.json());
+  showLoading(false);
+  state.total = data.total; state.pages = data.pages;
+
+  const pageInfo = document.getElementById('page-info');
+  pageInfo.textContent = data.total > 0 ? `Pág. ${data.page}/${data.pages} — ${data.total} palabras` : '';
+
+  // Update caches
+  data.words.forEach(w => {
+    wordCache[w.word_key] = w;
+    // Index first form id -> word_key for paste resolution
+    if (w.forms.length) wordIdIndex[w.forms[0].id] = w.word_key;
+  });
+
+  renderWords(data.words);
+}
+
+function renderWords(words) {
+  const list = document.getElementById('word-list');
+  const empty = document.getElementById('empty-msg');
+  if (!words.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = words.map(w => renderWordCard(w)).join('');
+
+  list.querySelectorAll('.part-input').forEach(inp => {
+    inp.addEventListener('input', onPartInput);
+    inp.addEventListener('change', onPartChange);
+    inp.addEventListener('blur', onPartBlur);
+  });
+  list.querySelectorAll('.word-header').forEach(h => {
+    h.addEventListener('click', onHeaderClick);
+  });
+  list.querySelectorAll('.word-checkbox').forEach(cb => {
+    cb.addEventListener('change', onCheckboxChange);
+  });
+
+  // Restore selection state
+  selectedWords.forEach(wk => {
+    const card = document.getElementById('card-' + wk);
+    if (card) {
+      card.classList.add('selected');
+      const cb = card.querySelector('.word-checkbox');
+      if (cb) cb.checked = true;
+    }
+  });
+}
+
+function renderWordCard(word) {
+  const totalForms = word.forms.length;
+  const doneForms = word.forms.filter(f => f.translated !== null).length;
+  const allDone = doneForms === totalForms;
+  const noneD = doneForms === 0;
+  const badgeCls = noneD ? 'badge-none' : (allDone ? 'badge-done' : 'badge-partial');
+  const badgeText = noneD ? 'sin traducir' : (allDone ? 'completa' : `${doneForms}/${totalForms}`);
+  const formsHtml = word.forms.map(f => renderFormRow(f, word)).join('');
+  const wk = word.word_key;
+
+  return `
+  <div class="word-card ${allDone ? 'all-done' : ''}" id="card-${wk}">
+    <div class="word-header">
+      <input type="checkbox" class="word-checkbox" data-word="${wk}" title="Seleccionar">
+      <span class="word-key">${wk}</span>
+      <span class="word-badge ${badgeCls}">${badgeText}</span>
+      <div class="header-actions">
+        <button class="hbtn hbtn-copy" title="Copiar para traducir" onclick="copyWord('${wk}')">📋</button>
+        <button class="hbtn hbtn-paste" title="Pegar traducción" onclick="togglePasteInline('${wk}')">📥</button>
+        <span class="arrow-icon">&#9660;</span>
+      </div>
+    </div>
+    <div class="paste-inline" id="paste-inline-${wk}">
+      <textarea id="paste-ta-${wk}" placeholder="Pega aquí la traducción de ${wk}..."></textarea>
+      <div class="paste-inline-row">
+        <span class="paste-inline-hint">Formato: NOUN | singular: valor | plural: valor</span>
+        <button class="btn btn-ghost" style="font-size:12px;padding:3px 10px" onclick="togglePasteInline('${wk}')">Cancelar</button>
+        <button class="btn btn-success" style="font-size:12px;padding:3px 10px" onclick="applyPasteInline('${wk}')">Aplicar</button>
+      </div>
+    </div>
+    <div class="word-body" id="body-${wk}">
+      ${formsHtml}
+    </div>
+  </div>`;
+}
+
+function renderFormRow(form, word) {
+  const labels = FORM_LABELS[form.form_type] || [];
+  const partsHtml = form.original.map((orig, i) => {
+    const label = labels[i] || `p${i+1}`;
+    const transVal = form.translated ? (form.translated[i] || '') : '';
+    const filled = transVal ? 'filled' : '';
+    return `
+    <div class="part-row">
+      <span class="part-name">${label}</span>
+      <span class="part-orig">${orig}</span>
+      <span class="arrow">→</span>
+      <input class="part-input ${filled}"
+        data-id="${form.id}" data-idx="${i}" data-total="${form.original.length}"
+        data-word="${word.word_key}" data-formtype="${form.form_type}"
+        value="${escHtml(transVal)}" placeholder="${orig}">
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="form-row" id="formrow-${form.id}">
+    <span class="form-label label-${form.form_type}">${form.form_type}</span>
+    <div class="form-parts">${partsHtml}</div>
+    <button class="btn btn-secondary form-clear" title="Limpiar" onclick="clearForm(${form.id}, '${word.word_key}', '${form.form_type}')">✕</button>
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// Header click (toggle collapse, skip button clicks)
+// ---------------------------------------------------------------------------
+function onHeaderClick(e) {
+  if (e.target.closest('.hbtn') || e.target.closest('.word-checkbox')) return;
+  const card = e.currentTarget.closest('.word-card');
+  const wk = card.id.replace('card-', '');
+  if (selectMode) { toggleWordSelect(wk); return; }
+  const body = document.getElementById('body-' + wk);
+  const arrow = e.currentTarget.querySelector('.arrow-icon');
+  if (body.style.display === 'none') {
+    body.style.display = 'flex'; arrow.innerHTML = '&#9660;';
+  } else {
+    body.style.display = 'none'; arrow.innerHTML = '&#9658;';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Copy/Paste per word
+// ---------------------------------------------------------------------------
+
+/** Format a word object to translatable text (skips empty fields).
+ *  Single ID on the WORD line — enough to resolve on paste even if translator changes the word text. */
+function formatWordText(word) {
+  const wordId = word.forms[0]?.id ?? '';
+  const lines = [`WORD[${wordId}]: ${word.word_key}`];
+  word.forms.forEach(form => {
+    const labels = FORM_LABELS[form.form_type] || [];
+    const vals = form.original;
+    const parts = vals
+      .map((v, i) => ({ label: labels[i] || 'p'+(i+1), val: v }))
+      .filter(p => p.val && p.val.trim())
+      .map(p => `${p.label}: ${p.val}`);
+    if (parts.length) lines.push(`${form.form_type} | ${parts.join(' | ')}`);
+  });
+  return lines.join('\n');
+}
+
+/** Copy a single word to clipboard */
+async function copyWord(wordKey) {
+  const word = wordCache[wordKey];
+  if (!word) { toast('Datos no disponibles', true); return; }
+  const text = formatWordText(word);
+  await navigator.clipboard.writeText(text);
+  toast(`Copiado: ${wordKey}`);
+}
+
+/** Copy the first N untranslated words automatically */
+async function autoCopy() {
+  const n = Math.max(1, parseInt(document.getElementById('auto-copy-n').value) || 10);
+  const data = await fetch(`/api/words?filter=untranslated&page=1&per_page=${n}`).then(r=>r.json());
+  if (!data.words.length) { toast('No hay palabras sin traducir', true); return; }
+  // Update cache so paste can resolve these words later
+  data.words.forEach(w => {
+    wordCache[w.word_key] = w;
+    if (w.forms.length) wordIdIndex[w.forms[0].id] = w.word_key;
+  });
+  const text = data.words.map(w => formatWordText(w)).join('\n\n');
+  await navigator.clipboard.writeText(text);
+  toast(`${data.words.length} palabras copiadas al portapapeles`);
+}
+
+/** Copy all selected words */
+async function copySelected() {
+  if (!selectedWords.size) return;
+  const blocks = [];
+  for (const wk of [...selectedWords].sort()) {
+    const word = wordCache[wk];
+    if (word) blocks.push(formatWordText(word));
+  }
+  await navigator.clipboard.writeText(blocks.join('\n\n'));
+  toast(`${blocks.length} palabras copiadas al portapapeles`);
+}
+
+/** Toggle the inline paste area for a word */
+function togglePasteInline(wordKey) {
+  const area = document.getElementById('paste-inline-' + wordKey);
+  area.classList.toggle('open');
+  if (area.classList.contains('open')) {
+    document.getElementById('paste-ta-' + wordKey).focus();
+  }
+}
+
+/** Apply inline paste for a single word */
+async function applyPasteInline(wordKey) {
+  const text = document.getElementById('paste-ta-' + wordKey).value.trim();
+  if (!text) { togglePasteInline(wordKey); return; }
+  const parsed = parseWordsText(text);
+  if (!parsed.length) { toast('No se reconoció el formato', true); return; }
+  // Use the first entry; if its wordId resolves to a different word, honour it,
+  // otherwise force it to apply to this card's wordKey
+  const entry = parsed[0];
+  const resolved = resolveWordKey(entry) || wordKey;
+  entry.wordKeyRaw = resolved; // ensure fallback path works
+  const { applied, warnings } = await applyTranslations([entry]);
+  togglePasteInline(wordKey);
+  document.getElementById('paste-ta-' + wordKey).value = '';
+  if (warnings.length) toast(`No se pudo aplicar: sin ID reconocible`, true);
+  else { toast(`${applied} formas aplicadas en ${resolved}`); }
+  await refreshStats();
+  await reloadCard(resolved);
+}
+
+// ---------------------------------------------------------------------------
+// Multi-paste modal
+// ---------------------------------------------------------------------------
+function openMultiPasteModal() {
+  document.getElementById('modal-title').textContent = 'Pegar traducciones múltiples';
+  document.getElementById('modal-textarea').value = '';
+  document.getElementById('modal-result').style.display = 'none';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('modal-textarea').focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+async function applyMultiPaste() {
+  const text = document.getElementById('modal-textarea').value.trim();
+  if (!text) { closeModal(); return; }
+  const parsed = parseWordsText(text);
+  if (!parsed.length) {
+    document.getElementById('modal-result').style.display = 'block';
+    document.getElementById('modal-result').style.color = '#e94560';
+    document.getElementById('modal-result').textContent = 'No se reconoció ninguna palabra en el texto.';
+    return;
+  }
+  const { applied, warnings } = await applyTranslations(parsed);
+  const resultEl = document.getElementById('modal-result');
+  resultEl.style.display = 'block';
+  if (warnings.length) {
+    resultEl.style.color = '#d9822b';
+    resultEl.textContent = `✓ ${applied} formas aplicadas. ⚠ Sin ID (ignoradas): ${warnings.join(', ')}`;
+  } else {
+    resultEl.style.color = '#0f9960';
+    resultEl.textContent = `✓ ${applied} formas aplicadas en ${parsed.length} palabras.`;
+  }
+  await refreshStats();
+  for (const entry of parsed) {
+    const wk = resolveWordKey(entry);
+    if (wk) await reloadCard(wk);
+  }
+  if (!warnings.length) setTimeout(closeModal, 1200);
+}
+
+// ---------------------------------------------------------------------------
+// Parse text format back to translations
+// Formato:
+//   WORD[57]: BATTLE   ← id único por palabra (el texto puede cambiar, el id no)
+//   NOUN | singular: batalla | plural: batallas
+//   VERB | presente: batallar | 3a_persona: batalla | ...
+// ---------------------------------------------------------------------------
+
+/** Returns array of { wordId, wordKeyRaw, forms: { FORMTYPE: vals[] } } */
+function parseWordsText(text) {
+  const entries = [];
+  let current = null;
+
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    // WORD[57]: BATTLE  (id opcional para pastes manuales)
+    const wordMatch = line.match(/^WORD(?:\[(\d+)\])?:\s*(\S+)/i);
+    if (wordMatch) {
+      current = {
+        wordId: wordMatch[1] ? parseInt(wordMatch[1]) : null,
+        wordKeyRaw: wordMatch[2].toUpperCase(),
+        forms: {}
+      };
+      entries.push(current);
+      continue;
+    }
+
+    if (!current) continue;
+
+    // NOUN | singular: batalla | plural: batallas
+    const formMatch = line.match(/^(NOUN|VERB|ADJ|PREFIX)\s*\|\s*(.+)$/i);
+    if (formMatch) {
+      const formType = formMatch[1].toUpperCase();
+      const labels   = FORM_LABELS[formType] || [];
+      const labelMap = {};
+      formMatch[2].split(/\s*\|\s*/).forEach(part => {
+        const m = part.match(/^([^:]+):\s*(.*)$/);
+        if (m) labelMap[m[1].trim()] = m[2].trim();
+      });
+      const vals = labels.map(lbl => labelMap[lbl] || '');
+      if (vals.some(v => v)) current.forms[formType] = vals;
+    }
+  }
+  return entries;
+}
+
+/** Resolve the real word_key from a parsed entry using wordIdIndex, then wordKeyRaw fallback */
+function resolveWordKey(entry) {
+  if (entry.wordId && wordIdIndex[entry.wordId]) return wordIdIndex[entry.wordId];
+  // Fallback: trust the raw text only if it exists in our cache
+  if (wordCache[entry.wordKeyRaw]) return entry.wordKeyRaw;
+  return null;
+}
+
+/** Apply parsed entries to DB and DOM. Returns { applied, warnings } */
+async function applyTranslations(entries) {
+  let applied = 0;
+  const warnings = []; // entries without a resolvable word
+
+  for (const entry of entries) {
+    const wordKey = resolveWordKey(entry);
+    if (!wordKey) {
+      const label = entry.wordId ? `id:${entry.wordId}` : entry.wordKeyRaw;
+      warnings.push(label);
+      continue;
+    }
+
+    for (const [formType, vals] of Object.entries(entry.forms)) {
+      const hasContent = vals.some(v => v && v.trim());
+      if (!hasContent) continue;
+      const formId = findFormId(wordKey, formType);
+      if (!formId) continue;
+
+      await fetch('/api/translate', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ id: formId, translated: vals })
+      });
+      applied++;
+      vals.forEach((v, i) => {
+        const inp = document.querySelector(`.part-input[data-id="${formId}"][data-idx="${i}"]`);
+        if (inp) { inp.value = v; inp.classList.toggle('filled', !!v); }
+      });
+    }
+    updateCardBadge(wordKey);
+  }
+  return { applied, warnings };
+}
+
+function findFormId(wordKey, formType) {
+  // Try DOM first
+  const inp = document.querySelector(`.part-input[data-word="${wordKey}"][data-formtype="${formType}"]`);
+  if (inp) return parseInt(inp.dataset.id);
+  // Try cache
+  const word = wordCache[wordKey];
+  if (word) {
+    const form = word.forms.find(f => f.form_type === formType);
+    if (form) return form.id;
+  }
+  return null;
+}
+
+/** Reload a single card from API (update cache + re-render in place) */
+async function reloadCard(wordKey) {
+  const params = new URLSearchParams({ filter: 'all', search: wordKey, page: 1, per_page: 1 });
+  const data = await fetch('/api/words?' + params).then(r=>r.json());
+  const word = data.words.find(w => w.word_key === wordKey);
+  if (!word) return;
+  wordCache[wordKey] = word;
+  const card = document.getElementById('card-' + wordKey);
+  if (!card) return;
+  const wasCollapsed = document.getElementById('body-' + wordKey)?.style.display === 'none';
+  const newCardHtml = renderWordCard(word);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = newCardHtml;
+  const newCard = tmp.firstElementChild;
+  card.replaceWith(newCard);
+  const newBody = document.getElementById('body-' + wordKey);
+  if (wasCollapsed && newBody) newBody.style.display = 'none';
+  // Re-attach listeners
+  newCard.querySelectorAll('.part-input').forEach(inp => {
+    inp.addEventListener('input', onPartInput);
+    inp.addEventListener('change', onPartChange);
+    inp.addEventListener('blur', onPartBlur);
+  });
+  newCard.querySelector('.word-header').addEventListener('click', onHeaderClick);
+  const cb = newCard.querySelector('.word-checkbox');
+  if (cb) cb.addEventListener('change', onCheckboxChange);
+  if (selectedWords.has(wordKey)) {
+    newCard.classList.add('selected');
+    if (cb) cb.checked = true;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Selection mode
+// ---------------------------------------------------------------------------
+function toggleSelectMode() {
+  selectMode = !selectMode;
+  document.body.classList.toggle('select-mode', selectMode);
+  const btn = document.getElementById('btn-select');
+  btn.textContent = selectMode ? '✕ Cancelar selección' : '☑ Seleccionar';
+  btn.className = selectMode ? 'btn btn-warning' : 'btn btn-info';
+  if (!selectMode) {
+    selectedWords.clear();
+    document.querySelectorAll('.word-card.selected').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.word-checkbox').forEach(cb => cb.checked = false);
+    updateSelectionUI();
+  }
+}
+
+function onCheckboxChange(e) {
+  const wk = e.target.dataset.word;
+  const card = document.getElementById('card-' + wk);
+  if (e.target.checked) { selectedWords.add(wk); card?.classList.add('selected'); }
+  else { selectedWords.delete(wk); card?.classList.remove('selected'); }
+  updateSelectionUI();
+}
+
+function toggleWordSelect(wk) {
+  const cb = document.querySelector(`.word-checkbox[data-word="${wk}"]`);
+  if (!cb) return;
+  cb.checked = !cb.checked;
+  cb.dispatchEvent(new Event('change'));
+}
+
+function updateSelectionUI() {
+  const count = selectedWords.size;
+  const btnCopy = document.getElementById('btn-copy-selected');
+  const countEl = document.getElementById('select-count');
+  btnCopy.style.display = count > 0 ? 'inline-block' : 'none';
+  countEl.style.display = count > 0 ? 'inline' : 'none';
+  countEl.textContent = `${count} seleccionadas`;
+}
+
+// ---------------------------------------------------------------------------
+// Input handling + autofill
+// ---------------------------------------------------------------------------
+function collectFormValues(formId) {
+  const inputs = document.querySelectorAll(`.part-input[data-id="${formId}"]`);
+  const vals = [];
+  inputs.forEach(inp => { vals[parseInt(inp.dataset.idx)] = inp.value; });
+  return vals;
+}
+
+function onPartInput(e) {
+  const inp = e.target;
+  if (parseInt(inp.dataset.idx) !== 0) return;
+  const wordKey = inp.dataset.word;
+  const val = inp.value;
+  if (!val) return;
+  document.querySelectorAll(`.part-input[data-word="${wordKey}"][data-idx="0"]`).forEach(sib => {
+    if (sib === inp) return;
+    if (sib.value === '') { sib.value = val; sib.classList.add('filled'); }
+  });
+}
+
+function onPartChange(e) { e.target.classList.toggle('filled', !!e.target.value); }
+
+function onPartBlur(e) {
+  const inp = e.target;
+  const formId = parseInt(inp.dataset.id);
+  const vals = collectFormValues(formId);
+  if (vals.some(v => v && v.trim())) {
+    saveFormTranslation(formId, vals, inp.dataset.word, inp.dataset.formtype);
+  }
+}
+
+async function saveFormTranslation(formId, vals, wordKey, formType) {
+  const origInputs = document.querySelectorAll(`.part-input[data-id="${formId}"]`);
+  const total = parseInt(origInputs[0]?.dataset.total || vals.length);
+  const filled = Array.from({length: total}, (_, i) => vals[i] || '');
+  const hasContent = filled.some(v => v.trim());
+  await fetch('/api/translate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ id: formId, translated: hasContent ? filled : null })
+  });
+  origInputs.forEach(inp => inp.classList.toggle('filled', !!inp.value));
+  updateCardBadge(wordKey);
+  await refreshStats();
+}
+
+async function clearForm(formId, wordKey, formType) {
+  document.querySelectorAll(`.part-input[data-id="${formId}"]`).forEach(inp => {
+    inp.value = ''; inp.classList.remove('filled');
+  });
+  await fetch('/api/translate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ id: formId, translated: null })
+  });
+  updateCardBadge(wordKey);
+  await refreshStats();
+}
+
+function updateCardBadge(wordKey) {
+  const card = document.getElementById('card-' + wordKey);
+  if (!card) return;
+  const inputs = card.querySelectorAll('.part-input');
+  const formIds = [...new Set([...inputs].map(i => i.dataset.id))];
+  let doneForms = 0;
+  formIds.forEach(fid => {
+    if ([...card.querySelectorAll(`.part-input[data-id="${fid}"]`)].some(i => i.value.trim())) doneForms++;
+  });
+  const total = formIds.length;
+  const allDone = doneForms === total && total > 0;
+  const badge = card.querySelector('.word-badge');
+  badge.className = 'word-badge ' + (doneForms === 0 ? 'badge-none' : allDone ? 'badge-done' : 'badge-partial');
+  badge.textContent = doneForms === 0 ? 'sin traducir' : allDone ? 'completa' : `${doneForms}/${total}`;
+  card.classList.toggle('all-done', allDone);
+}
+
+// ---------------------------------------------------------------------------
+// Filters & pagination
+// ---------------------------------------------------------------------------
+function setFilter(f) {
+  state.filter = f; state.page = 1;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  loadWords();
+}
+
+function onSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    state.search = document.getElementById('search-box').value.trim();
+    state.page = 1; loadWords();
+  }, 350);
+}
+
+function prevPage() { if (state.page > 1) { state.page--; loadWords(); window.scrollTo(0,0); } }
+function nextPage() { if (state.page < state.pages) { state.page++; loadWords(); window.scrollTo(0,0); } }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function showLoading(v) {
+  document.getElementById('loading').style.display = v ? 'block' : 'none';
+  document.getElementById('word-list').style.display = v ? 'none' : 'flex';
+}
+
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? '#e94560' : '#0f9960';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Close modal on overlay click
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+boot();
+</script>
+</body>
+</html>

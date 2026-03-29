@@ -63,11 +63,13 @@ def translate():
     # 1. Rule Engine — resolución local sin caché ni API
     rule_result = rule_engine.match(text)
     if rule_result:
+        _cache.track("rule")
         return jsonify({"translated": rule_result["translated"], "engine": rule_result["engine"]})
 
     # 2. Caché SQLite
     cached = _cache.get(text)
     if cached:
+        _cache.track("cache")
         return jsonify({"translated": cached["translated"], "engine": cached["engine"]})
 
     # 3. API de traducción
@@ -77,6 +79,7 @@ def translate():
         return jsonify({"error": str(exc)}), 502
 
     _cache.set(text, translated, _translator.name)
+    _cache.track("api")
     return jsonify({"translated": translated, "engine": _translator.name})
 
 
